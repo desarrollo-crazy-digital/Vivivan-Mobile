@@ -197,15 +197,15 @@ export default function Step8Confirmar() {
       </Card>
 
       {/* Navigation Buttons */}
-      <View className="flex-row justify-between mt-4 mb-12">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 8)} className="w-[45%]" />
+      <View className="mt-4 flex-row space-x-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 8)} className="flex-1" />
         {canEditFields ? (
           <Button
             title="Tramitar Contrato"
             variant="primary"
             disabled={submitting}
             onPress={handleSubmit}
-            className="w-[45%]"
+            className="flex-1"
           />
         ) : (
           <Button
@@ -215,7 +215,7 @@ export default function Step8Confirmar() {
               resetWizard();
               router.replace('/contratos');
             }}
-            className="w-[45%]"
+            className="flex-1"
           />
         )}
       </View>

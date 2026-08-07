@@ -144,7 +144,7 @@ export default function Step2Suministro() {
       <View pointerEvents={canEditFields ? 'auto' : 'none'}>
         {/* CUPS lookup card */}
       <Card title="Código CUPS" subtitle="Inserta el CUPS del suministro y consulta SIPS">
-        <View className="flex-row items-end space-x-3 mb-2">
+        <View className="flex-row items-center space-x-3 mb-2">
           <View className="flex-grow">
             <Input
               label="CÓDIGO CUPS"
@@ -264,7 +264,7 @@ export default function Step2Suministro() {
           title="Atrás"
           variant="outline"
           onPress={() => navigatePrev(router, 2)}
-          className="w-[45%]"
+          className="flex-1"
         />
         <Button
           title="Siguiente Paso"

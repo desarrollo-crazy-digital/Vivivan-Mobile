@@ -70,6 +70,7 @@ interface WizardState {
   contrato: Partial<Contrato>;
   documentos: { uri: string; name: string; type: string }[];
   firmaBase64: string | null;
+  isEditing: boolean;
 
   // Actions
   setStep: (step: number) => void;
@@ -154,6 +155,7 @@ export const useWizardStore = create<WizardState>((set) => ({
   contrato: initialContratoState,
   documentos: [],
   firmaBase64: null,
+  isEditing: false,
 
   setStep: (step) => set({ currentStep: step }),
   setAvailableSteps: (steps) => set({ availableSteps: steps }),
@@ -229,6 +231,7 @@ export const useWizardStore = create<WizardState>((set) => ({
         })),
         firmaBase64: contratoPayload?.firma || null,
         currentStep: 1,
+        isEditing: true,
       };
     }),
 
@@ -280,5 +283,6 @@ export const useWizardStore = create<WizardState>((set) => ({
       contrato: initialContratoState,
       documentos: [],
       firmaBase64: null,
+      isEditing: false,
     }),
 }));

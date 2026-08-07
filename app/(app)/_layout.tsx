@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { authService } from '../../src/api/auth.service';
+import { useWizardStore } from '../../src/store/useWizardStore';
 
 export default function AppLayout() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const isEditing = useWizardStore((s) => s.isEditing);
 
   useEffect(() => {
     async function checkAuth() {
@@ -62,6 +64,7 @@ export default function AppLayout() {
         name="contratos/nuevo/step1-cliente"
         options={{
           title: 'Nuevo Contrato - Cliente',
+          headerBackVisible: !isEditing,
         }}
       />
       <Stack.Screen

@@ -93,9 +93,9 @@ export default function Step6Comisiones() {
       </Card>
 
       {/* Navigation Buttons */}
-      <View className="flex-row justify-between mt-4 mb-12">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 6)} className="w-[45%]" />
-        <Button title="Siguiente" variant="primary" onPress={() => navigateNext(router, 6)} className="w-[45%]" />
+      <View className="mt-4 flex-row space-x-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 6)} className="flex-1" />
+        <Button title="Siguiente" variant="primary" onPress={() => navigateNext(router, 6)} className="flex-1" />
       </View>
     </ScrollView>
   );

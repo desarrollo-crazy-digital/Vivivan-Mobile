@@ -439,7 +439,7 @@ export default function Step3Oferta() {
 
       {/* Nav Actions */}
       <View className="mt-4 flex-row space-x-3">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 3)} className="w-[45%]" />
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 3)} className="flex-1" />
         <Button
           title="Siguiente Paso"
           onPress={handleNext}
