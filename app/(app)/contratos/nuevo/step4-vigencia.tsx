@@ -24,6 +24,64 @@ const normalizeStateValue = (value?: string | number | null) => {
     .trim();
 };
 
+const findMatchingStateOption = ({
+  statusOptions,
+  contractState,
+}: {
+  statusOptions: Array<{ id: number; label: string }>;
+  contractState: any;
+}) => {
+  if (!statusOptions.length || !contractState) return null;
+
+  const candidates = [
+    contractState?.estado,
+    contractState?.estado_label,
+    contractState?.estado_nombre,
+    contractState?.estado_comercializadora?.label,
+    contractState?.estado_comercializadora?.estado,
+    contractState?.estado_comercializadora?.nombre,
+    contractState?.estado_comercializadora_nombre,
+    contractState?.estado_comercializadora_label,
+    contractState?.estado_actual,
+    contractState?.estado_actual_label,
+  ].filter(Boolean);
+
+  if (!candidates.length) return null;
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeStateValue(candidate);
+    const matchingOption = statusOptions.find((option) => {
+      const normalizedLabel = normalizeStateValue(option.label);
+      return (
+        normalizedLabel === normalizedCandidate ||
+        normalizedLabel.includes(normalizedCandidate) ||
+        normalizedCandidate.includes(normalizedLabel)
+      );
+    });
+
+    if (matchingOption) {
+      return { id: matchingOption.id, label: matchingOption.label };
+    }
+  }
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeStateValue(candidate);
+    const normalizedTokens = normalizedCandidate.split(' ').filter(Boolean);
+    const matchingOption = statusOptions.find((option) => {
+      const normalizedLabel = normalizeStateValue(option.label);
+      const labelTokens = normalizedLabel.split(' ').filter(Boolean);
+      const overlap = normalizedTokens.filter((token) => labelTokens.includes(token));
+      return overlap.length > 0;
+    });
+
+    if (matchingOption) {
+      return { id: matchingOption.id, label: matchingOption.label };
+    }
+  }
+
+  return null;
+};
+
 const resolveContractState = ({
   statusOptions,
   contrato,
@@ -39,49 +97,7 @@ const resolveContractState = ({
     }
   }
 
-  const candidates = [
-    contrato?.estado,
-    contrato?.estado_label,
-    contrato?.estado_nombre,
-    contrato?.estado_comercializadora?.label,
-    contrato?.estado_comercializadora?.estado,
-    contrato?.estado_comercializadora?.nombre,
-    contrato?.estado_comercializadora_nombre,
-    contrato?.estado_comercializadora_label,
-    contrato?.estado_actual,
-    contrato?.estado_actual_label,
-  ].filter(Boolean);
-
-  for (const candidate of candidates) {
-    const normalizedCandidate = normalizeStateValue(candidate);
-    const matchingOption = statusOptions.find((option) => {
-      const normalizedLabel = normalizeStateValue(option.label);
-      return (
-        normalizedLabel === normalizedCandidate ||
-        normalizedLabel.includes(normalizedCandidate) ||
-        normalizedCandidate.includes(normalizedLabel)
-      );
-    });
-    if (matchingOption) {
-      return { id: matchingOption.id, label: matchingOption.label };
-    }
-  }
-
-  for (const candidate of candidates) {
-    const normalizedCandidate = normalizeStateValue(candidate);
-    const normalizedTokens = normalizedCandidate.split(' ').filter(Boolean);
-    const matchingOption = statusOptions.find((option) => {
-      const normalizedLabel = normalizeStateValue(option.label);
-      const labelTokens = normalizedLabel.split(' ').filter(Boolean);
-      const overlap = normalizedTokens.filter((token) => labelTokens.includes(token));
-      return overlap.length >= Math.min(2, Math.max(normalizedTokens.length, labelTokens.length));
-    });
-    if (matchingOption) {
-      return { id: matchingOption.id, label: matchingOption.label };
-    }
-  }
-
-  return null;
+  return findMatchingStateOption({ statusOptions, contractState: contrato });
 };
 
 export default function Step4Vigencia() {
@@ -112,7 +128,24 @@ export default function Step4Vigencia() {
   const isCreating = !contrato.id;
   const resolvedState = React.useMemo(
     () => resolveContractState({ statusOptions, contrato }),
-    [statusOptions, contrato.estado, contrato.id_estado_comercializadora]
+    [
+      statusOptions,
+      contrato.estado,
+      contrato.estado_label,
+      contrato.estado_nombre,
+      contrato.estado_comercializadora?.label,
+      contrato.estado_comercializadora?.estado,
+      contrato.estado_comercializadora?.nombre,
+      contrato.estado_comercializadora_nombre,
+      contrato.estado_comercializadora_label,
+      contrato.estado_actual,
+      contrato.estado_actual_label,
+      contrato.id_estado_comercializadora,
+      contrato.estado_id,
+      contrato.estado_id_comercializadora,
+      contrato.estado_comercializadora_id,
+      contrato.estado_comercializadora?.id,
+    ]
   );
 
   // Commercials can only edit status in creation or if active state is incidence/pendiente
@@ -158,11 +191,18 @@ export default function Step4Vigencia() {
         }
       }
 
-      if (!contrato.id_estado_comercializadora && resolvedState?.id) {
-        updateContrato({
-          id_estado_comercializadora: resolvedState.id,
-          estado: resolvedState.label,
-        });
+      if (resolvedState?.id) {
+        const currentId = String(contrato.id_estado_comercializadora ?? '');
+        const currentLabel = String(contrato.estado ?? '');
+        const nextId = String(resolvedState.id);
+        const nextLabel = String(resolvedState.label ?? '');
+
+        if (currentId !== nextId || normalizeStateValue(currentLabel) !== normalizeStateValue(nextLabel)) {
+          updateContrato({
+            id_estado_comercializadora: resolvedState.id,
+            estado: resolvedState.label,
+          });
+        }
       }
     }
   }, [statusOptions, user, contrato.id_estado_comercializadora, contrato.estado, resolvedState?.id, resolvedState?.label, isComercial]);
@@ -211,9 +251,20 @@ export default function Step4Vigencia() {
     }
   };
 
-  const selectedStateName = resolvedState?.label || statusOptions.find(
-    (o) => String(o.id) === String(contrato.id_estado_comercializadora)
-  )?.label || 'Seleccionar...';
+  const selectedStateName =
+    resolvedState?.label ||
+    statusOptions.find((o) => String(o.id) === String(contrato.id_estado_comercializadora))?.label ||
+    contrato.estado ||
+    contrato.estado_label ||
+    contrato.estado_nombre ||
+    contrato.estado_comercializadora?.label ||
+    contrato.estado_comercializadora?.estado ||
+    contrato.estado_comercializadora?.nombre ||
+    contrato.estado_comercializadora_nombre ||
+    contrato.estado_comercializadora_label ||
+    contrato.estado_actual ||
+    contrato.estado_actual_label ||
+    'Seleccionar...';
 
   return (
     <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
