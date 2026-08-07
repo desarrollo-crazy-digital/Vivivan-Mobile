@@ -3,12 +3,20 @@
     "name": "Vivivan Mobile",
     "slug": "vivivan-mobile",
     "scheme": "vivivan-mobile",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "android": {
       "package": "com.vivivan.mobile"
     },
     "ios": {
       "bundleIdentifier": "com.vivivan.mobile"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "030ef005-f958-4fbf-848f-d1cba83bb04d"
+      }
     }
   }
 }

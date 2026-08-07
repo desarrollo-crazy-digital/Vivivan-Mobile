@@ -7,6 +7,7 @@ import { authService } from '../../../src/api/auth.service';
 import { Card } from '../../../src/components/ui/Card';
 import { Badge } from '../../../src/components/ui/Badge';
 import { Button } from '../../../src/components/ui/Button';
+import { ComisionEstimadaViewer } from '../../../src/components/contratos/ComisionEstimadaViewer';
 
 export default function ContratoDetailScreen() {
   const router = useRouter();
@@ -355,20 +356,23 @@ Estado: ${contract.estado || 'Borrador'}`,
         )}
 
         {activeTab === 'Comisiones' && (
-          <Card title="Comisión de Venta del Contrato">
-            <View className="space-y-3">
-              <View className="flex-row justify-between py-1 border-b border-slate-50">
-                <Text className="text-xs text-slate-400 font-bold uppercase">Porcentaje Comisión</Text>
-                <Text className="text-xs text-emerald-600 font-bold">
-                  {contract.id_comision ? 'Asignado' : 'Pendiente de cálculo'}
-                </Text>
+          <View>
+            <ComisionEstimadaViewer contrato={contract} user={user} />
+            <Card title="Comisión de Venta del Contrato">
+              <View className="space-y-3">
+                <View className="flex-row justify-between py-1 border-b border-slate-50">
+                  <Text className="text-xs text-slate-400 font-bold uppercase">Porcentaje Comisión</Text>
+                  <Text className="text-xs text-emerald-600 font-bold">
+                    {contract.id_comision ? 'Asignado' : 'Pendiente de cálculo'}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between py-1 border-b border-slate-50">
+                  <Text className="text-xs text-slate-400 font-bold uppercase">Estado Comisión Estados</Text>
+                  <Text className="text-xs text-slate-700 font-semibold">{contract.id_comisiones_estados || 'Pendiente'}</Text>
+                </View>
               </View>
-              <View className="flex-row justify-between py-1 border-b border-slate-50">
-                <Text className="text-xs text-slate-400 font-bold uppercase">Estado Comisión Estados</Text>
-                <Text className="text-xs text-slate-700 font-semibold">{contract.id_comisiones_estados || 'Pendiente'}</Text>
-              </View>
-            </View>
-          </Card>
+            </Card>
+          </View>
         )}
 
         {activeTab === 'Facturación' && (
