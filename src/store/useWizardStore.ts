@@ -11,12 +11,20 @@ const resolveEstadoContrato = (data: any) => {
     contratoPayload?.estado_comercializadora?.label,
     contratoPayload?.estado_comercializadora?.estado,
     contratoPayload?.estado_comercializadora?.nombre,
+    contratoPayload?.estado_comercializadora_nombre,
+    contratoPayload?.estado_comercializadora_label,
+    contratoPayload?.estado_actual,
+    contratoPayload?.estado_actual_label,
     data?.estado,
     data?.estado_label,
     data?.estado_nombre,
     data?.estado_comercializadora?.label,
     data?.estado_comercializadora?.estado,
     data?.estado_comercializadora?.nombre,
+    data?.estado_comercializadora_nombre,
+    data?.estado_comercializadora_label,
+    data?.estado_actual,
+    data?.estado_actual_label,
   ];
 
   const estadoLabel = estadoCandidates.find((value) => Boolean(value)) || '';

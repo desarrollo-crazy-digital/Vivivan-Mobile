@@ -122,14 +122,6 @@ export default function Step3Oferta() {
           <Text className="text-xs text-blue-600 font-bold uppercase">Paso {stepIdx > 0 ? stepIdx : 1} de {totalSteps > 0 ? totalSteps : 8}</Text>
           <Text className="text-xl font-bold text-slate-800">Parámetros de la Oferta</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            resetWizard();
-            router.replace('/contratos');
-          }}
-        >
-          <Text className="text-xs text-slate-400 font-bold">Cancelar</Text>
-        </TouchableOpacity>
       </View>
 
       <View pointerEvents={canEditFields ? 'auto' : 'none'}>

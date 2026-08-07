@@ -11,13 +11,18 @@ import { Button } from '../../../../src/components/ui/Button';
 // Simple picker mock/styled list since standard Picker can be clunky across OS
 import { TouchableOpacity } from 'react-native';
 
-const normalizeStateValue = (value?: string | number | null) =>
-  String(value ?? '')
+const normalizeStateValue = (value?: string | number | null) => {
+  if (value === null || value === undefined) return '';
+
+  return String(value)
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .replace(/\b(revision|revisar|revis)\b/g, 'revisar')
+    .replace(/\b(documentacion|documentaci)\b/g, 'documentacion')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+};
 
 const resolveContractState = ({
   statusOptions,
@@ -26,7 +31,7 @@ const resolveContractState = ({
   statusOptions: Array<{ id: number; label: string }>;
   contrato: any;
 }) => {
-  const explicitId = contrato?.id_estado_comercializadora;
+  const explicitId = contrato?.id_estado_comercializadora ?? contrato?.estado_comercializadora?.id ?? contrato?.estado_id ?? contrato?.estado_id_comercializadora ?? contrato?.estado_comercializadora_id;
   if (explicitId) {
     const matchingOption = statusOptions.find((option) => String(option.id) === String(explicitId));
     if (matchingOption) {
@@ -41,11 +46,36 @@ const resolveContractState = ({
     contrato?.estado_comercializadora?.label,
     contrato?.estado_comercializadora?.estado,
     contrato?.estado_comercializadora?.nombre,
+    contrato?.estado_comercializadora_nombre,
+    contrato?.estado_comercializadora_label,
+    contrato?.estado_actual,
+    contrato?.estado_actual_label,
   ].filter(Boolean);
 
   for (const candidate of candidates) {
     const normalizedCandidate = normalizeStateValue(candidate);
-    const matchingOption = statusOptions.find((option) => normalizeStateValue(option.label) === normalizedCandidate);
+    const matchingOption = statusOptions.find((option) => {
+      const normalizedLabel = normalizeStateValue(option.label);
+      return (
+        normalizedLabel === normalizedCandidate ||
+        normalizedLabel.includes(normalizedCandidate) ||
+        normalizedCandidate.includes(normalizedLabel)
+      );
+    });
+    if (matchingOption) {
+      return { id: matchingOption.id, label: matchingOption.label };
+    }
+  }
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeStateValue(candidate);
+    const normalizedTokens = normalizedCandidate.split(' ').filter(Boolean);
+    const matchingOption = statusOptions.find((option) => {
+      const normalizedLabel = normalizeStateValue(option.label);
+      const labelTokens = normalizedLabel.split(' ').filter(Boolean);
+      const overlap = normalizedTokens.filter((token) => labelTokens.includes(token));
+      return overlap.length >= Math.min(2, Math.max(normalizedTokens.length, labelTokens.length));
+    });
     if (matchingOption) {
       return { id: matchingOption.id, label: matchingOption.label };
     }
