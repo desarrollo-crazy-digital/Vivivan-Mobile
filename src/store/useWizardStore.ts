@@ -2,6 +2,46 @@ import { create } from 'zustand';
 import { Cliente, Contrato, Direccion } from '../types/db.types';
 import { UserSession } from '../api/auth.service';
 
+const resolveEstadoContrato = (data: any) => {
+  const contratoPayload = data?.contrato || data || {};
+  const estadoCandidates = [
+    contratoPayload?.estado,
+    contratoPayload?.estado_label,
+    contratoPayload?.estado_nombre,
+    contratoPayload?.estado_comercializadora?.label,
+    contratoPayload?.estado_comercializadora?.estado,
+    contratoPayload?.estado_comercializadora?.nombre,
+    data?.estado,
+    data?.estado_label,
+    data?.estado_nombre,
+    data?.estado_comercializadora?.label,
+    data?.estado_comercializadora?.estado,
+    data?.estado_comercializadora?.nombre,
+  ];
+
+  const estadoLabel = estadoCandidates.find((value) => Boolean(value)) || '';
+
+  const estadoIdCandidates = [
+    contratoPayload?.id_estado_comercializadora,
+    contratoPayload?.estado_id,
+    contratoPayload?.estado_id_comercializadora,
+    contratoPayload?.estado_comercializadora_id,
+    contratoPayload?.estado_comercializadora?.id,
+    data?.id_estado_comercializadora,
+    data?.estado_id,
+    data?.estado_id_comercializadora,
+    data?.estado_comercializadora_id,
+    data?.estado_comercializadora?.id,
+  ];
+
+  const estadoId = estadoIdCandidates.find((value) => value !== undefined && value !== null && value !== '') ?? undefined;
+
+  return {
+    estado: estadoLabel || contratoPayload?.estado || '',
+    id_estado_comercializadora: estadoId ? Number(estadoId) : undefined,
+  };
+};
+
 export interface WizardStep {
   id: number;
   name: string;
@@ -162,29 +202,35 @@ export const useWizardStore = create<WizardState>((set) => ({
     }),
 
   loadContractForEdit: (data) =>
-    set((state) => ({
-      cliente: {
-        ...(data.cliente || {}),
-        iban: data.cliente?.iban || data.contrato?.iban || '',
-      },
-      direccion_fiscal: data.direccion_fiscal || {},
-      direccion_facturacion: data.direccion_facturacion || {},
-      punto_suministro: data.punto_suministro || {},
-      contrato: {
-        ...data.contrato,
-        tarifa: data.contrato?.tarifa_acceso || data.contrato?.tarifa || '',
-        tipo_suministro: data.contrato?.suministro || data.contrato?.tipo_suministro || 'Luz',
-        id_producto: data.contrato?.producto_id || data.contrato?.id_producto || '',
-        comercializadora_id: data.contrato?.comercializadora_id || data.contrato?.id_comercializadora || '',
-      },
-      documentos: (data.documentos_rel || []).map((doc: any) => ({
-        uri: doc.url || '',
-        name: doc.nombre_archivo || '',
-        type: doc.tipo_documento || '',
-      })),
-      firmaBase64: data.contrato?.firma || null,
-      currentStep: 1,
-    })),
+    set((state) => {
+      const contratoPayload = data?.contrato || data || {};
+      const estadoContrato = resolveEstadoContrato(data);
+
+      return {
+        cliente: {
+          ...(data.cliente || {}),
+          iban: data.cliente?.iban || contratoPayload?.iban || '',
+        },
+        direccion_fiscal: data.direccion_fiscal || {},
+        direccion_facturacion: data.direccion_facturacion || {},
+        punto_suministro: data.punto_suministro || {},
+        contrato: {
+          ...contratoPayload,
+          ...estadoContrato,
+          tarifa: contratoPayload?.tarifa_acceso || contratoPayload?.tarifa || '',
+          tipo_suministro: contratoPayload?.suministro || contratoPayload?.tipo_suministro || 'Luz',
+          id_producto: contratoPayload?.producto_id || contratoPayload?.id_producto || '',
+          comercializadora_id: contratoPayload?.comercializadora_id || contratoPayload?.id_comercializadora || '',
+        },
+        documentos: (data.documentos_rel || []).map((doc: any) => ({
+          uri: doc.url || '',
+          name: doc.nombre_archivo || '',
+          type: doc.tipo_documento || '',
+        })),
+        firmaBase64: contratoPayload?.firma || null,
+        currentStep: 1,
+      };
+    }),
 
   updateCliente: (fields) =>
     set((state) => ({

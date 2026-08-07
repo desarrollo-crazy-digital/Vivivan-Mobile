@@ -11,6 +11,49 @@ import { Button } from '../../../../src/components/ui/Button';
 // Simple picker mock/styled list since standard Picker can be clunky across OS
 import { TouchableOpacity } from 'react-native';
 
+const normalizeStateValue = (value?: string | number | null) =>
+  String(value ?? '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const resolveContractState = ({
+  statusOptions,
+  contrato,
+}: {
+  statusOptions: Array<{ id: number; label: string }>;
+  contrato: any;
+}) => {
+  const explicitId = contrato?.id_estado_comercializadora;
+  if (explicitId) {
+    const matchingOption = statusOptions.find((option) => String(option.id) === String(explicitId));
+    if (matchingOption) {
+      return { id: matchingOption.id, label: matchingOption.label };
+    }
+  }
+
+  const candidates = [
+    contrato?.estado,
+    contrato?.estado_label,
+    contrato?.estado_nombre,
+    contrato?.estado_comercializadora?.label,
+    contrato?.estado_comercializadora?.estado,
+    contrato?.estado_comercializadora?.nombre,
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeStateValue(candidate);
+    const matchingOption = statusOptions.find((option) => normalizeStateValue(option.label) === normalizedCandidate);
+    if (matchingOption) {
+      return { id: matchingOption.id, label: matchingOption.label };
+    }
+  }
+
+  return null;
+};
+
 export default function Step4Vigencia() {
   const router = useRouter();
   const { contrato, updateContrato, user, navigateNext, navigatePrev } = useWizardStore();
@@ -37,6 +80,10 @@ export default function Step4Vigencia() {
   // Role helper logic
   const isComercial = user?.role === 'comercial';
   const isCreating = !contrato.id;
+  const resolvedState = React.useMemo(
+    () => resolveContractState({ statusOptions, contrato }),
+    [statusOptions, contrato.estado, contrato.id_estado_comercializadora]
+  );
 
   // Commercials can only edit status in creation or if active state is incidence/pendiente
   const canEditStatus = !isComercial || isCreating || 
@@ -61,19 +108,34 @@ export default function Step4Vigencia() {
   }, []);
 
   useEffect(() => {
-    if (isComercial && statusOptions.length > 0 && !contrato.id_estado_comercializadora) {
-      const defaultOpt = statusOptions.find((opt) => {
-        const label = String(opt.label || '').toLowerCase();
-        return label.includes('pendiente revisar') || label.includes('pendiente documentaci');
-      });
-      if (defaultOpt) {
+    if (statusOptions.length > 0) {
+      const hasExistingState = Boolean(
+        contrato.id_estado_comercializadora ||
+        resolvedState?.id ||
+        normalizeStateValue(contrato.estado)
+      );
+
+      if (!hasExistingState && isComercial) {
+        const defaultOpt = statusOptions.find((opt) => {
+          const label = String(opt.label || '').toLowerCase();
+          return label.includes('pendiente revisar') || label.includes('pendiente documentaci');
+        });
+        if (defaultOpt) {
+          updateContrato({
+            id_estado_comercializadora: defaultOpt.id,
+            estado: defaultOpt.label,
+          });
+        }
+      }
+
+      if (!contrato.id_estado_comercializadora && resolvedState?.id) {
         updateContrato({
-          id_estado_comercializadora: defaultOpt.id,
-          estado: defaultOpt.label,
+          id_estado_comercializadora: resolvedState.id,
+          estado: resolvedState.label,
         });
       }
     }
-  }, [statusOptions, user, contrato.id_estado_comercializadora]);
+  }, [statusOptions, user, contrato.id_estado_comercializadora, contrato.estado, resolvedState?.id, resolvedState?.label, isComercial]);
 
   const validateDates = () => {
     const newErrors: Record<string, string> = {};
@@ -119,7 +181,7 @@ export default function Step4Vigencia() {
     }
   };
 
-  const selectedStateName = statusOptions.find(
+  const selectedStateName = resolvedState?.label || statusOptions.find(
     (o) => String(o.id) === String(contrato.id_estado_comercializadora)
   )?.label || 'Seleccionar...';
 
