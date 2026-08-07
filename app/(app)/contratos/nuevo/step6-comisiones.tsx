@@ -40,15 +40,39 @@ const findValueByKeys = (source: any, keys: string[]): any => {
   return undefined;
 };
 
-const getNumberFromKeys = (source: any, keys: string[]) => {
-  const value = findValueByKeys(source, keys);
+const findValueByKeyFragments = (source: any, fragments: string[]): any => {
+  if (!source || typeof source !== 'object') return undefined;
+
+  const lowerFragments = fragments.map((fragment) => fragment.toLowerCase());
+
+  for (const [key, value] of Object.entries(source)) {
+    const lowerKey = String(key).toLowerCase();
+    if (lowerFragments.some((fragment) => lowerKey.includes(fragment))) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(source)) {
+    if (typeof value === 'object' && value !== null) {
+      const found = findValueByKeyFragments(value, fragments);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const getNumberFromKeys = (source: any, keys: string[], fragments: string[] = []) => {
+  const value = findValueByKeys(source, keys) ?? findValueByKeyFragments(source, fragments);
   if (value === undefined || value === null || value === '') return undefined;
-  const parsed = Number(value);
+  const parsed = Number(String(value).replace(/[^0-9,.-]+/g, '').replace(',', '.'));
   return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-const getArrayFromKeys = (source: any, keys: string[]) => {
-  const value = findValueByKeys(source, keys);
+const getArrayFromKeys = (source: any, keys: string[], fragments: string[] = []) => {
+  const value = findValueByKeys(source, keys) ?? findValueByKeyFragments(source, fragments);
   if (Array.isArray(value)) return value;
   if (value && typeof value === 'object') {
     return Object.values(value).filter(Array.isArray).flat();
@@ -56,8 +80,8 @@ const getArrayFromKeys = (source: any, keys: string[]) => {
   return [];
 };
 
-const getRawSections = (source: any, keys: string[]) => {
-  const value = findValueByKeys(source, keys);
+const getRawSections = (source: any, keys: string[], fragments: string[] = []) => {
+  const value = findValueByKeys(source, keys) ?? findValueByKeyFragments(source, fragments);
   if (Array.isArray(value)) return value;
   if (value && typeof value === 'object') {
     return Object.values(value).filter(Array.isArray).flat();
@@ -99,13 +123,18 @@ export default function Step6Comisiones() {
     setError(null);
     try {
       const payload = {
-        comercializadora_id: contrato.comercializadora_id || '',
-        comercializadora_nombre: contrato.comercializadora_nombre || '',
-        producto_id: contrato.id_producto || '',
-        producto_nombre: contrato.producto_nombre || '',
-        tarifa_acceso: contrato.tarifa || '',
-        consumo_anual: Number(contrato.consumo_sips) || 0,
+        comercializadora_id: contrato.comercializadora_id || (contrato as any).id_comercializadora || '',
+        comercializadora_nombre: contrato.comercializadora_nombre || (contrato as any).comercializadora_nombre || '',
+        producto_id: contrato.id_producto || (contrato as any).producto_id || '',
+        producto_nombre: contrato.producto_nombre || (contrato as any).producto_nombre || '',
+        tarifa_acceso: contrato.tarifa || contrato.tarifa_acceso || '',
+        suministro: contrato.tipo_suministro || (contrato as any).suministro || 'Luz',
+        tipo_alta: contrato.tipo_alta || 'Nueva',
+        cambio_titular: contrato.cambio_titular || false,
+        cambio_potencia: contrato.cambio_potencia || false,
+        consumo_anual: Number(contrato.consumo_sips ?? (contrato as any).consumo_anual) || 0,
         potencia_max: Math.max(
+          Number((contrato as any).potencia_max) || 0,
           Number(contrato.p1) || 0,
           Number(contrato.p2) || 0,
           Number(contrato.p3) || 0,
