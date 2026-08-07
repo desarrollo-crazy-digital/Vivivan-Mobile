@@ -12,23 +12,55 @@ const formatMoney = (value: unknown) => {
   return `${amount.toFixed(2).replace('.', ',')} €`;
 };
 
-const getNumberFromKeys = (source: any, keys: string[]) => {
-  if (!source) return undefined;
+const findValueByKeys = (source: any, keys: string[]): any => {
+  if (!source || typeof source !== 'object') return undefined;
+
   for (const key of keys) {
-    const value = source[key];
-    if (value !== undefined && value !== null && value !== '') {
-      const parsed = Number(value);
-      if (!Number.isNaN(parsed)) return parsed;
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
     }
   }
+
+  const lowerKeys = keys.map((key) => key.toLowerCase());
+  for (const [key, value] of Object.entries(source)) {
+    if (lowerKeys.includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+
+  for (const value of Object.values(source)) {
+    if (typeof value === 'object' && value !== null) {
+      const found = findValueByKeys(value, keys);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+
   return undefined;
 };
 
+const getNumberFromKeys = (source: any, keys: string[]) => {
+  const value = findValueByKeys(source, keys);
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
 const getArrayFromKeys = (source: any, keys: string[]) => {
-  if (!source) return [];
-  for (const key of keys) {
-    const value = source[key];
-    if (Array.isArray(value)) return value;
+  const value = findValueByKeys(source, keys);
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') {
+    return Object.values(value).filter(Array.isArray).flat();
+  }
+  return [];
+};
+
+const getRawSections = (source: any, keys: string[]) => {
+  const value = findValueByKeys(source, keys);
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') {
+    return Object.values(value).filter(Array.isArray).flat();
   }
   return [];
 };
@@ -97,20 +129,23 @@ export default function Step6Comisiones() {
     fetchComision();
   }, [fetchComision]);
 
-  const cobrosVivivan = getArrayFromKeys(comisionData, ['cobros_vivivan', 'cobros', 'cobrosVivivan']);
-  const pagoComercial = getArrayFromKeys(comisionData, ['pago_comercial', 'pagoComercial', 'pagos', 'pagos_comercial']);
-  const decomisionVivivan = getArrayFromKeys(comisionData, ['decomision_vivivan', 'decomisiones_vivivan', 'decomisiones', 'decomision']);
-  const decomisionComercial = getArrayFromKeys(comisionData, ['decomision_comercial', 'decomisiones_comercial', 'decomisionesComercial']);
+  const data = comisionData?.data ?? comisionData;
 
-  const baseVivivan = getNumberFromKeys(comisionData, ['base_vivivan', 'base', 'base_vivivan_eur', 'baseVivivan']);
-  const estudios = getNumberFromKeys(comisionData, ['estudios_vivivan', 'estudios', 'estudios_luz', 'estudios_luz_ivan_navarro_sl']);
-  const margenBruto = getNumberFromKeys(comisionData, ['margen_vivivan_bruto', 'margen_bruto', 'margenBruto']);
-  const margenNeto = getNumberFromKeys(comisionData, ['margen_vivivan_neto', 'margen_neto', 'margenNeto']);
-  const porcentajeComision = getNumberFromKeys(comisionData, ['porcentaje', 'porcentaje_comision']);
-  const comisionVivivan = getNumberFromKeys(comisionData, ['comision_vivivan', 'comisionVivivan', 'ingresos_vivivan']);
+  const cobrosVivivan = getRawSections(data, ['cobros_vivivan', 'cobros', 'cobrosVivivan', 'cobros_vivivan_detalle', 'cobro_vivivan']);
+  const pagoComercial = getRawSections(data, ['pago_comercial', 'pagoComercial', 'pagos', 'pagos_comercial', 'pago_comercial_detalle']);
+  const decomisionVivivan = getRawSections(data, ['decomision_vivivan', 'decomisiones_vivivan', 'decomisiones', 'decomision', 'decomision_vivivan_detalle']);
+  const decomisionComercial = getRawSections(data, ['decomision_comercial', 'decomisiones_comercial', 'decomisionesComercial', 'decomision_comercial_detalle']);
+
+  const baseVivivan = getNumberFromKeys(data, ['base_vivivan', 'base', 'base_vivivan_eur', 'baseVivivan', 'base_vivivan_bruto']);
+  const estudios = getNumberFromKeys(data, ['estudios_vivivan', 'estudios', 'estudios_luz', 'estudios_luz_ivan_navarro_sl', 'estudios_vivivan_eur']);
+  const margenBruto = getNumberFromKeys(data, ['margen_vivivan_bruto', 'margen_bruto', 'margenBruto', 'margen_vivivan_bruto_eur']);
+  const margenNeto = getNumberFromKeys(data, ['margen_vivivan_neto', 'margen_neto', 'margenNeto', 'margen_vivivan_neto_eur']);
+  const porcentajeComision = getNumberFromKeys(data, ['porcentaje', 'porcentaje_comision', 'porcentaje_vivivan']);
+  const comisionVivivan = getNumberFromKeys(data, ['comision_vivivan', 'comisionVivivan', 'ingresos_vivivan', 'ingreso_vivivan', 'ingresos']);
   const observacionesLiquidacion =
-    comisionData?.observaciones_liquidacion || comisionData?.observacionesLiquidacion || comisionData?.observaciones || '';
-  const seguimientoInterno = comisionData?.seguimiento_interno || comisionData?.seguimientoInterno || '';
+    findValueByKeys(data, ['observaciones_liquidacion', 'observacionesLiquidacion', 'observaciones', 'observacion']) || '';
+  const seguimientoInterno =
+    findValueByKeys(data, ['seguimiento_interno', 'seguimientoInterno', 'seguimiento', 'seguimiento_interno']) || '';
 
   return (
     <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
