@@ -176,7 +176,7 @@ export default function Step1Cliente() {
     ['pendiente comercial', 'incidencia'].includes(String(contrato.estado || '').toLowerCase()));
 
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+    <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 120 }}>
       {isEditing && !canEditFields && (
         <View className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl mb-4">
           <Text className="text-xs text-amber-700 font-bold leading-normal">
@@ -191,14 +191,6 @@ export default function Step1Cliente() {
           <Text className="text-xs text-blue-600 font-bold uppercase">Paso {stepIdx > 0 ? stepIdx : 1} de {totalSteps > 0 ? totalSteps : 8}</Text>
           <Text className="text-xl font-bold text-slate-800">Ficha del Cliente</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            resetWizard();
-            router.replace('/contratos');
-          }}
-        >
-          <Text className="text-xs text-slate-400 font-bold">Cancelar</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Customer Search engine */}

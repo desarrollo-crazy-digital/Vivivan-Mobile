@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
 import { authService } from '../../src/api/auth.service';
 import { useWizardStore } from '../../src/store/useWizardStore';
 
@@ -8,6 +8,18 @@ export default function AppLayout() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const isEditing = useWizardStore((s) => s.isEditing);
+  const resetWizard = useWizardStore((s) => s.resetWizard);
+
+  const handleCancel = () => {
+    resetWizard();
+    router.replace('/contratos');
+  };
+
+  const renderCancelHeaderButton = () => (
+    <TouchableOpacity onPress={handleCancel} className="mr-2">
+      <Text className="text-sm font-semibold text-white">Cancelar</Text>
+    </TouchableOpacity>
+  );
 
   useEffect(() => {
     async function checkAuth() {
@@ -65,48 +77,56 @@ export default function AppLayout() {
         options={{
           title: 'Nuevo Contrato - Cliente',
           headerBackVisible: !isEditing,
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step2-suministro"
         options={{
           title: 'Nuevo Contrato - Suministro',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step3-oferta"
         options={{
           title: 'Nuevo Contrato - Oferta',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step4-vigencia"
         options={{
           title: 'Nuevo Contrato - Vigencia',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step5-infocomercial"
         options={{
           title: 'Nuevo Contrato - Info Comercial',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step6-comisiones"
         options={{
           title: 'Nuevo Contrato - Comisiones',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step7-facturacion"
         options={{
           title: 'Nuevo Contrato - Facturación',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen
         name="contratos/nuevo/step8-confirmar"
         options={{
           title: 'Nuevo Contrato - Confirmar',
+          headerRight: renderCancelHeaderButton,
         }}
       />
       <Stack.Screen

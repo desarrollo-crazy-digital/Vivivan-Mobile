@@ -47,7 +47,7 @@ export default function Step6Comisiones() {
   }, [contrato]);
 
   return (
-    <ScrollView className="flex-1 bg-slate-50 p-4">
+    <ScrollView className="flex-1 bg-slate-50" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
       <Text className="text-xl font-bold text-slate-800 mb-2">Paso 6: Liquidación y Comisiones</Text>
       <Text className="text-xs text-slate-500 mb-4">Detalle de ingresos y pagos estimados para el contrato.</Text>
 
