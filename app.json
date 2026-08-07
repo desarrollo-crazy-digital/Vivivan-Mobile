@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Vivivan Mobile",
+    "slug": "vivivan-mobile",
+    "scheme": "vivivan-mobile",
+    "platforms": ["ios", "android"],
+    "android": {
+      "package": "com.vivivan.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.vivivan.mobile"
+    }
+  }
+}
