@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Alert, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useWizardStore } from '../../../../src/store/useWizardStore';
 import { contratosService } from '../../../../src/api/contratos.service';
@@ -9,7 +9,48 @@ import { Button } from '../../../../src/components/ui/Button';
 
 export default function Step2Suministro() {
   const router = useRouter();
-  const { punto_suministro, updatePuntoSuministro, updateContrato, resetWizard, navigateNext, navigatePrev, currentStep, availableSteps, contrato, user } = useWizardStore();
+  const {
+    punto_suministro,
+    updatePuntoSuministro,
+    direccion_fiscal,
+    updateDireccionFiscal,
+    direccion_facturacion,
+    updateDireccionFacturacion,
+    cliente,
+    updateCliente,
+    updateContrato,
+    resetWizard,
+    navigateNext,
+    navigatePrev,
+    currentStep,
+    availableSteps,
+    contrato,
+    user,
+  } = useWizardStore();
+
+  const copyPuntoSuministroToFiscal = () => {
+    updateDireccionFiscal({
+      nombre_via: punto_suministro.nombre_via || '',
+      numero: punto_suministro.numero || '',
+      piso: punto_suministro.piso || '',
+      puerta: punto_suministro.puerta || '',
+      codigo_postal: punto_suministro.codigo_postal || '',
+      poblacion: punto_suministro.poblacion || '',
+      provincia: punto_suministro.provincia || '',
+    });
+  };
+
+  const copyPuntoSuministroToFacturacion = () => {
+    updateDireccionFacturacion({
+      nombre_via: punto_suministro.nombre_via || '',
+      numero: punto_suministro.numero || '',
+      piso: punto_suministro.piso || '',
+      puerta: punto_suministro.puerta || '',
+      codigo_postal: punto_suministro.codigo_postal || '',
+      poblacion: punto_suministro.poblacion || '',
+      provincia: punto_suministro.provincia || '',
+    });
+  };
   
   const [loading, setLoading] = useState(false);
   const [sipsSuccess, setSipsSuccess] = useState<boolean | null>(null);
@@ -177,6 +218,33 @@ export default function Step2Suministro() {
         )}
       </Card>
 
+      {/* Preferencia de Facturación */}
+      <Card title="Preferencia de Facturación">
+        <View className="mb-2">
+          <Text className="text-xs font-bold text-slate-700 uppercase mb-2">MODALIDAD DE FACTURA</Text>
+          <View className="flex-row space-x-2">
+            {[
+              { id: 'Factura Electrónica', label: 'Electrónica' },
+              { id: 'Factura a Papel', label: 'Papel' },
+              { id: 'Factura Electrónica y a Papel', label: 'Ambas' },
+            ].map((opt) => {
+              const active = (contrato.tipo_factura || 'Factura Electrónica') === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => updateContrato({ tipo_factura: opt.id })}
+                  className={`flex-1 py-2.5 px-2 rounded-xl border items-center justify-center ${
+                    active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <Text className={`text-[11px] font-bold ${active ? 'text-white' : 'text-slate-700'}`}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Card>
+
       {/* Manual details card */}
       <Card title="Dirección de Suministro">
         <Input
@@ -248,15 +316,163 @@ export default function Step2Suministro() {
           error={errors.provincia}
         />
       </Card>
+
+      {/* Dirección Fiscal Card */}
+      <Card title="Dirección Fiscal">
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-xs font-bold text-slate-700">¿Dirección Fiscal distinta?</Text>
+          <Switch
+            value={!!cliente.mostrar_direccion_fiscal}
+            onValueChange={(val) => {
+              updateCliente({ mostrar_direccion_fiscal: val });
+              if (val && !direccion_fiscal.nombre_via) {
+                copyPuntoSuministroToFiscal();
+              }
+            }}
+            trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+            thumbColor={cliente.mostrar_direccion_fiscal ? '#2563EB' : '#F1F5F9'}
+          />
+        </View>
+
+        {cliente.mostrar_direccion_fiscal && (
+          <View className="mt-2">
+            <TouchableOpacity
+              onPress={copyPuntoSuministroToFiscal}
+              className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 mb-4 items-center"
+            >
+              <Text className="text-blue-700 text-xs font-bold">📋 Copiar Dirección de Suministro</Text>
+            </TouchableOpacity>
+
+            <Input
+              label="CALLE / VÍA"
+              placeholder="Nombre de la vía fiscal"
+              value={direccion_fiscal.nombre_via || ''}
+              onChangeText={(val) => updateDireccionFiscal({ nombre_via: val })}
+            />
+            <View className="flex-row space-x-3">
+              <View className="w-1/2">
+                <Input
+                  label="NÚMERO"
+                  placeholder="12"
+                  value={direccion_fiscal.numero || ''}
+                  onChangeText={(val) => updateDireccionFiscal({ numero: val })}
+                />
+              </View>
+              <View className="w-1/2">
+                <Input
+                  label="PISO / PUERTA"
+                  placeholder="2º B"
+                  value={direccion_fiscal.puerta || ''}
+                  onChangeText={(val) => updateDireccionFiscal({ puerta: val })}
+                />
+              </View>
+            </View>
+            <Input
+              label="CÓDIGO POSTAL"
+              placeholder="28001"
+              keyboardType="number-pad"
+              maxLength={5}
+              value={direccion_fiscal.codigo_postal || ''}
+              onChangeText={(val) => updateDireccionFiscal({ codigo_postal: val })}
+            />
+            <Input
+              label="POBLACIÓN"
+              placeholder="Población fiscal"
+              value={direccion_fiscal.poblacion || ''}
+              onChangeText={(val) => updateDireccionFiscal({ poblacion: val })}
+            />
+            <Input
+              label="PROVINCIA"
+              placeholder="Provincia fiscal"
+              value={direccion_fiscal.provincia || ''}
+              onChangeText={(val) => updateDireccionFiscal({ provincia: val })}
+            />
+          </View>
+        )}
+      </Card>
+
+      {/* Dirección Facturación Card */}
+      <Card title="Dirección de Facturación">
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-xs font-bold text-slate-700">¿Dirección de Envío distinta?</Text>
+          <Switch
+            value={!!cliente.mostrar_direccion_facturacion}
+            onValueChange={(val) => {
+              updateCliente({ mostrar_direccion_facturacion: val });
+              if (val && !direccion_facturacion.nombre_via) {
+                copyPuntoSuministroToFacturacion();
+              }
+            }}
+            trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+            thumbColor={cliente.mostrar_direccion_facturacion ? '#2563EB' : '#F1F5F9'}
+          />
+        </View>
+
+        {cliente.mostrar_direccion_facturacion && (
+          <View className="mt-2">
+            <TouchableOpacity
+              onPress={copyPuntoSuministroToFacturacion}
+              className="bg-blue-50 border border-blue-200 rounded-xl p-2.5 mb-4 items-center"
+            >
+              <Text className="text-blue-700 text-xs font-bold">📋 Copiar Dirección de Suministro</Text>
+            </TouchableOpacity>
+
+            <Input
+              label="CALLE / VÍA"
+              placeholder="Nombre de la vía de facturación"
+              value={direccion_facturacion.nombre_via || ''}
+              onChangeText={(val) => updateDireccionFacturacion({ nombre_via: val })}
+            />
+            <View className="flex-row space-x-3">
+              <View className="w-1/2">
+                <Input
+                  label="NÚMERO"
+                  placeholder="12"
+                  value={direccion_facturacion.numero || ''}
+                  onChangeText={(val) => updateDireccionFacturacion({ numero: val })}
+                />
+              </View>
+              <View className="w-1/2">
+                <Input
+                  label="PISO / PUERTA"
+                  placeholder="2º B"
+                  value={direccion_facturacion.puerta || ''}
+                  onChangeText={(val) => updateDireccionFacturacion({ puerta: val })}
+                />
+              </View>
+            </View>
+            <Input
+              label="CÓDIGO POSTAL"
+              placeholder="28001"
+              keyboardType="number-pad"
+              maxLength={5}
+              value={direccion_facturacion.codigo_postal || ''}
+              onChangeText={(val) => updateDireccionFacturacion({ codigo_postal: val })}
+            />
+            <Input
+              label="POBLACIÓN"
+              placeholder="Población de facturación"
+              value={direccion_facturacion.poblacion || ''}
+              onChangeText={(val) => updateDireccionFacturacion({ poblacion: val })}
+            />
+            <Input
+              label="PROVINCIA"
+              placeholder="Provincia de facturación"
+              value={direccion_facturacion.provincia || ''}
+              onChangeText={(val) => updateDireccionFacturacion({ provincia: val })}
+            />
+          </View>
+        )}
+      </Card>
       </View>
 
       {/* Nav Actions */}
-      <View className="mt-4 flex-row space-x-3">
+      <View className="mt-4 flex-row gap-3">
         <Button
           title="Atrás"
           variant="outline"
           onPress={() => navigatePrev(router, 2)}
-          className="flex-1"
+          className="flex-1 mr-3"
         />
         <Button
           title="Siguiente Paso"

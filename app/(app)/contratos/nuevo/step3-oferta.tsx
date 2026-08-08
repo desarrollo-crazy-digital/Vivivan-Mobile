@@ -19,6 +19,18 @@ export default function Step3Oferta() {
     queryFn: contratosService.getComercializadoras,
   });
 
+  // Fetch comerciales
+  const { data: comerciales = [] } = useQuery({
+    queryKey: ['comerciales'],
+    queryFn: contratosService.getComerciales,
+  });
+
+  // Fetch servicios
+  const { data: serviciosDisponibles = [] } = useQuery({
+    queryKey: ['servicios'],
+    queryFn: contratosService.getServicios,
+  });
+
   // 2. Fetch products cascade
   const { data: productos = [], isLoading: loadingProds } = useQuery({
     queryKey: ['productos', contrato.comercializadora_id],
@@ -90,10 +102,17 @@ export default function Step3Oferta() {
       : ['RL.1', 'RL.2', 'RL.3', 'RL.4'];
 
   const tiposAlta = [
-    { label: 'Alta Nueva', value: 'Nueva' },
-    { label: 'Cambio Comercializadora', value: 'Cambio comercializadora' },
-    { label: 'Cambio Titular', value: 'Cambio titular' },
+    { label: 'Nueva', value: 'Nueva' },
     { label: 'Renovación', value: 'Renovación' },
+    { label: 'Renovación Tácita', value: 'Renovación Tácita' },
+    { label: 'Cambio SIN cambios', value: 'Cambio de comercializadora SIN cambios' },
+    { label: 'Cambio CON cambios', value: 'Cambio de comercializadora CON cambios' },
+  ];
+
+  const tiposFirma = [
+    { label: 'Firma Digital (SMS)', value: 'DIGITAL_SMS' },
+    { label: 'Firma Digital (Email)', value: 'DIGITAL_EMAIL' },
+    { label: 'Firma Manual (Papel)', value: 'MANUAL' },
   ];
 
   const isComercial = user?.role === 'comercial';
@@ -246,10 +265,11 @@ export default function Step3Oferta() {
         </View>
         {errors.tarifa && <Text className="text-xs text-red-500 mb-4">{errors.tarifa}</Text>}
 
-        <Text className="text-xs font-semibold text-slate-500 mb-2">TIPO ALTA</Text>
-        <View className="flex-row flex-wrap mb-4">
+        <Text className="text-xs font-semibold text-slate-500 mb-2">TIPO OPERACIÓN</Text>
+        <View className="flex-row flex-wrap mb-2">
           {tiposAlta.map((alt) => {
-            const active = contrato.tipo_alta === alt.value;
+            const currentTipo = contrato.tipo_alta || (contrato as any).tipo_operacion || 'Nueva';
+            const active = currentTipo === alt.value;
             return (
               <TouchableOpacity
                 key={alt.value}
@@ -266,24 +286,82 @@ export default function Step3Oferta() {
           })}
         </View>
 
-        <View className="flex-row justify-between items-center mb-4 pt-2 border-t border-slate-100">
-          <Text className="text-xs font-semibold text-slate-600">¿Hay Cambio de Titular?</Text>
-          <Switch
-            value={contrato.cambio_titular}
-            onValueChange={(val) => updateContrato({ cambio_titular: val })}
-            trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-            thumbColor={contrato.cambio_titular ? '#2563EB' : '#F1F5F9'}
-          />
-        </View>
+        {(contrato.tipo_alta === 'Cambio de comercializadora CON cambios' || (contrato as any).tipo_operacion === 'Cambio de comercializadora CON cambios') && (
+          <View className="border-t border-slate-100 pt-3 mt-2">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xs font-semibold text-slate-600">¿Hay Cambio de Titular?</Text>
+              <Switch
+                value={!!contrato.cambio_titular}
+                onValueChange={(val) => updateContrato({ cambio_titular: val })}
+                trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+                thumbColor={contrato.cambio_titular ? '#2563EB' : '#F1F5F9'}
+              />
+            </View>
 
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-xs font-semibold text-slate-600">¿Hay Cambio de Potencia?</Text>
-          <Switch
-            value={contrato.cambio_potencia}
-            onValueChange={(val) => updateContrato({ cambio_potencia: val })}
-            trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
-            thumbColor={contrato.cambio_potencia ? '#2563EB' : '#F1F5F9'}
-          />
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-xs font-semibold text-slate-600">¿Hay Cambio de Potencia?</Text>
+              <Switch
+                value={!!contrato.cambio_potencia}
+                onValueChange={(val) => updateContrato({ cambio_potencia: val })}
+                trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+                thumbColor={contrato.cambio_potencia ? '#2563EB' : '#F1F5F9'}
+              />
+            </View>
+          </View>
+        )}
+      </Card>
+
+      {/* Agente Comercial Card */}
+      <Card title="Agente Comercial Asignado">
+        <Text className="text-xs font-semibold text-slate-500 mb-2">SELECCIONAR COMERCIAL</Text>
+        {comerciales.length > 0 ? (
+          <View className="flex-row flex-wrap mb-2">
+            {comerciales.map((c) => {
+              const active = String(contrato.comercial_id || contrato.codigo_comercial || '') === String(c.id || c.codigo);
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  onPress={() => updateContrato({ comercial_id: String(c.id), codigo_comercial: c.codigo })}
+                  className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                    active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>
+                    {c.nombre}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          <View className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-2">
+            <Text className="text-xs font-bold text-slate-800">
+              👤 Comercial Asignado: {(contrato as any).comercial || (contrato as any).comercial_nombre || user?.nombre || user?.codigo || 'Predeterminado'}
+            </Text>
+          </View>
+        )}
+      </Card>
+
+      {/* Tipo de Firma Card */}
+      <Card title="Modalidad / Tipo de Firma">
+        <Text className="text-xs font-semibold text-slate-500 mb-2">SELECCIONAR TIPO DE FIRMA</Text>
+        <View className="flex-row flex-wrap mb-2">
+          {tiposFirma.map((tf) => {
+            const active = (contrato.firma || contrato.tipo_firma || 'DIGITAL_SMS') === tf.value;
+            return (
+              <TouchableOpacity
+                key={tf.value}
+                onPress={() => updateContrato({ firma: tf.value, tipo_firma: tf.value })}
+                className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                  active ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'
+                }`}
+              >
+                <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>
+                  {tf.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </Card>
 
@@ -408,30 +486,155 @@ export default function Step3Oferta() {
         </Card>
       )}
 
-      {/* Sips consumption inputs */}
-      <Card title="Consumo Estimado">
+      {/* Consumos */}
+      <Card title="Consumo y Potencias">
+        <View className="flex-row space-x-3">
+          <View className="flex-1">
+            <Input
+              label="CONSUMO CRM (ESTIMADO SIPS)"
+              placeholder="0.000"
+              keyboardType="numeric"
+              editable={false}
+              value={contrato.consumo_sips !== undefined && contrato.consumo_sips !== null ? String(contrato.consumo_sips) : ''}
+              onChangeText={() => {}}
+            />
+          </View>
+          <View className="flex-1">
+            <Input
+              label="CONSUMO COMERCIALIZADORA"
+              placeholder="0"
+              keyboardType="number-pad"
+              value={
+                contrato.consumo_comercializadora !== undefined && contrato.consumo_comercializadora !== null
+                  ? String(contrato.consumo_comercializadora)
+                  : (contrato.consumo_anual !== undefined ? String(contrato.consumo_anual) : '')
+              }
+              onChangeText={(val) => {
+                const cleaned = val.replace(/[^0-9]/g, '');
+                updateContrato({
+                  consumo_comercializadora: cleaned as any,
+                  consumo_anual: cleaned as any,
+                });
+              }}
+            />
+          </View>
+        </View>
+      </Card>
+
+      {/* Datos Adicionales Comercializadora */}
+      <Card title="Nº Contrato y Tensión">
         <Input
-          label="CONSUMO ANUAL ESTIMADO (KWH)"
-          placeholder="3000"
-          keyboardType="number-pad"
-          value={contrato.consumo_sips !== undefined ? String(contrato.consumo_sips) : ''}
-          onChangeText={(val) => updateContrato({ consumo_sips: val as any })}
+          label="Nº CONTRATO COMERCIALIZADORA"
+          placeholder="Ej: REF-994821"
+          value={contrato.numero_contrato_comercializadora || ''}
+          onChangeText={(val) => updateContrato({ numero_contrato_comercializadora: val })}
         />
 
         <Input
-          label="OBSERVACIONES DEL CONTRATO"
-          placeholder="Observaciones..."
-          multiline
-          numberOfLines={3}
-          value={contrato.observaciones_contrato}
-          onChangeText={(val) => updateContrato({ observaciones_contrato: val })}
+          label="TENSIÓN"
+          placeholder="Ej: Baja Tensión / Autocompletado SIPS"
+          value={contrato.tension || ''}
+          onChangeText={(val) => updateContrato({ tension: val })}
         />
+      </Card>
+
+      {/* Batería Virtual */}
+      <Card title="Batería Virtual">
+        <View className="flex-row justify-between items-center py-1">
+          <View className="flex-1 mr-3">
+            <Text className="text-xs font-bold text-slate-700">¿Activar Batería Virtual?</Text>
+            <Text className="text-[11px] text-slate-400">Servicio de acumulación de excedentes solares</Text>
+          </View>
+          <Switch
+            value={!!contrato.bateria_virtual}
+            onValueChange={(val) => updateContrato({ bateria_virtual: val })}
+            trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+            thumbColor={contrato.bateria_virtual ? '#2563EB' : '#F1F5F9'}
+          />
+        </View>
+      </Card>
+
+      {/* Servicios Adicionales */}
+      <Card title="Servicios Adicionales">
+        <View className="mb-4">
+          <Text className="text-xs font-semibold text-slate-500 mb-2">SERVICIO 1</Text>
+          {serviciosDisponibles.length > 0 ? (
+            <View className="flex-row flex-wrap mb-2">
+              <TouchableOpacity
+                onPress={() => updateContrato({ nombre_servicio_1: '', importe_servicio_1: 0 })}
+                className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                  !contrato.nombre_servicio_1 ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'
+                }`}
+              >
+                <Text className={`text-xs font-bold ${!contrato.nombre_servicio_1 ? 'text-white' : 'text-slate-700'}`}>Sin Servicio</Text>
+              </TouchableOpacity>
+              {serviciosDisponibles.map((srv) => {
+                const active = contrato.nombre_servicio_1 === srv.nombre;
+                return (
+                  <TouchableOpacity
+                    key={srv.id}
+                    onPress={() => updateContrato({ nombre_servicio_1: srv.nombre, importe_servicio_1: (srv as any).importe || 0 })}
+                    className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                      active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>{srv.nombre}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <Input
+              label="NOMBRE DE SERVICIO 1"
+              placeholder="Ej. Mantenimiento / SVE"
+              value={contrato.nombre_servicio_1 || ''}
+              onChangeText={(val) => updateContrato({ nombre_servicio_1: val })}
+            />
+          )}
+        </View>
+
+        <View className="mb-2">
+          <Text className="text-xs font-semibold text-slate-500 mb-2">SERVICIO 2</Text>
+          {serviciosDisponibles.length > 0 ? (
+            <View className="flex-row flex-wrap">
+              <TouchableOpacity
+                onPress={() => updateContrato({ nombre_servicio_2: '', importe_servicio_2: 0 })}
+                className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                  !contrato.nombre_servicio_2 ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'
+                }`}
+              >
+                <Text className={`text-xs font-bold ${!contrato.nombre_servicio_2 ? 'text-white' : 'text-slate-700'}`}>Sin Servicio</Text>
+              </TouchableOpacity>
+              {serviciosDisponibles.map((srv) => {
+                const active = contrato.nombre_servicio_2 === srv.nombre;
+                return (
+                  <TouchableOpacity
+                    key={srv.id}
+                    onPress={() => updateContrato({ nombre_servicio_2: srv.nombre, importe_servicio_2: (srv as any).importe || 0 })}
+                    className={`px-3 py-2 rounded-xl border mr-2 mb-2 ${
+                      active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>{srv.nombre}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <Input
+              label="NOMBRE DE SERVICIO 2"
+              placeholder="Ej. Asistencia 24h"
+              value={contrato.nombre_servicio_2 || ''}
+              onChangeText={(val) => updateContrato({ nombre_servicio_2: val })}
+            />
+          )}
+        </View>
       </Card>
       </View>
 
       {/* Nav Actions */}
-      <View className="mt-4 flex-row space-x-3">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 3)} className="flex-1" />
+      <View className="mt-4 flex-row gap-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 3)} className="flex-1 mr-3" />
         <Button
           title="Siguiente Paso"
           onPress={handleNext}

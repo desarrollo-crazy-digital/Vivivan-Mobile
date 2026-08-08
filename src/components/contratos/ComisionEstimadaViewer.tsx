@@ -114,6 +114,7 @@ export const ComisionEstimadaViewer = ({ contrato, user }: { contrato: any; user
         potencias_array: [p1_val, p2_val, p3_val, p4_val, p5_val, p6_val],
         potencias_list: [p1_val, p2_val, p3_val, p4_val, p5_val, p6_val],
 
+        comercial_id: String(contrato.codigo_comercial || user?.codigo || ''),
         codigo_comercial: user?.codigo || 0,
       };
       const response = await client.post('/api/comisiones/calcular', payload);
@@ -132,37 +133,44 @@ export const ComisionEstimadaViewer = ({ contrato, user }: { contrato: any; user
 
   const data = comisionData?.data ?? comisionData;
 
-  const baseVivivan = getNumberFromKeys(data, ['comision_base', 'base_vivivan', 'base', 'base_vivivan_eur', 'baseVivivan', 'base_vivivan_bruto']) || 0;
-  
-  let estudios = getNumberFromKeys(data, ['estudios_vivivan', 'estudios', 'estudios_luz', 'estudios_luz_ivan_navarro_sl', 'estudios_vivivan_eur']);
-  if (estudios === undefined && baseVivivan !== undefined) {
-    if (String(data?.comercializadora || data?.comercializadora_nombre || '').toLowerCase().includes('loviluz')) {
-      estudios = baseVivivan;
-    }
-  }
-  if (estudios === undefined) {
-    estudios = 0;
+  const baseVivivan = contrato.comision_base !== undefined && contrato.comision_base !== null
+    ? contrato.comision_base
+    : (getNumberFromKeys(data, ['comision_base', 'base_vivivan', 'base', 'base_vivivan_eur', 'baseVivivan', 'base_vivivan_bruto']) || 0);
+
+  const porcentajeComision = contrato.porcentaje_comision !== undefined && contrato.porcentaje_comision !== null
+    ? contrato.porcentaje_comision
+    : (getNumberFromKeys(data, ['porcentaje', 'porcentaje_comision', 'porcentaje_vivivan', 'porcentaje_comercial']) || 0);
+
+  const comisionVivivan = contrato.beneficio_vivivan !== undefined && contrato.beneficio_vivivan !== null
+    ? contrato.beneficio_vivivan
+    : (getNumberFromKeys(data, ['comision_vivivan', 'comisionVivivan', 'ingresos_vivivan', 'ingreso_vivivan', 'ingresos', 'beneficio_vivivan']) || 0);
+
+  // Estudios
+  let estudios = 0;
+  if (contrato.comercializadora_nombre && String(contrato.comercializadora_nombre).toLowerCase().includes('loviluz')) {
+    estudios = baseVivivan;
+  } else if (contrato.comercializadora && String(contrato.comercializadora).toLowerCase().includes('loviluz')) {
+    estudios = baseVivivan;
+  } else {
+    estudios = getNumberFromKeys(data, ['estudios_vivivan', 'estudios', 'estudios_luz', 'estudios_luz_ivan_navarro_sl', 'estudios_vivivan_eur']) || 0;
   }
 
-  let margenBruto = getNumberFromKeys(data, ['margen_vivivan_bruto', 'margen_bruto', 'margenBruto', 'margen_vivivan_bruto_eur']);
-  if (margenBruto === undefined && baseVivivan !== undefined) {
-    const beneficio = getNumberFromKeys(data, ['beneficio_vivivan', 'beneficio']) || 0;
-    margenBruto = Math.max(0, beneficio - (estudios || 0));
-  }
-  if (margenBruto === undefined) {
-    margenBruto = 0;
+  // Margen Bruto
+  let margenBruto = contrato.beneficio_vivivan !== undefined && contrato.beneficio_vivivan !== null
+    ? Math.max(0, contrato.beneficio_vivivan - estudios)
+    : (getNumberFromKeys(data, ['margen_vivivan_bruto', 'margen_bruto', 'margenBruto', 'margen_vivivan_bruto_eur']) || 0);
+
+  if (margenBruto === 0 && baseVivivan > 0) {
+    const beneficio = comisionVivivan;
+    margenBruto = Math.max(0, beneficio - estudios);
   }
 
-  let margenNeto = getNumberFromKeys(data, ['margen_vivivan_neto', 'margen_neto', 'margenNeto', 'margen_vivivan_neto_eur']);
-  if (margenNeto === undefined && margenBruto !== undefined) {
-    margenNeto = margenBruto;
-  }
-  if (margenNeto === undefined) {
-    margenNeto = 0;
-  }
-
-  const porcentajeComision = getNumberFromKeys(data, ['porcentaje', 'porcentaje_comision', 'porcentaje_vivivan', 'porcentaje_comercial']) || 0;
-  const comisionVivivan = getNumberFromKeys(data, ['comision_vivivan', 'comisionVivivan', 'ingresos_vivivan', 'ingreso_vivivan', 'ingresos', 'beneficio_vivivan']) || 0;
+  // Margen Neto
+  const decomVivivan = contrato.decomision_vivivan || 0;
+  const decomComercial = contrato.decomision_comercial || 0;
+  const margenNeto = contrato.beneficio_vivivan !== undefined && contrato.beneficio_vivivan !== null
+    ? (margenBruto - decomVivivan + decomComercial)
+    : (getNumberFromKeys(data, ['margen_vivivan_neto', 'margen_neto', 'margenNeto', 'margen_vivivan_neto_eur']) || margenBruto);
 
   if (loading) {
     return (

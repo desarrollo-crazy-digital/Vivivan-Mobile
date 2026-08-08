@@ -108,8 +108,22 @@ export default function Step4Vigencia() {
 
   // Fetch contract status list
   const { data: statusOptions = [], isLoading: loadingStatus } = useQuery({
-    queryKey: ['estadosContrato'],
-    queryFn: contratosService.getEstados,
+    queryKey: ['estadosContrato', contrato.comercializadora_id],
+    queryFn: async () => {
+      if (contrato.comercializadora_id) {
+        try {
+          return await contratosService.getEstadosPorComercializadora(contrato.comercializadora_id);
+        } catch (e) {
+          console.warn('Failed fetching specific states, falling back to all states', e);
+        }
+      }
+      const all = await contratosService.getEstados();
+      return all.map((e: any) => ({
+        id: e.id,
+        label: e.label || e.estado || '',
+        categoria: (e.categoria || '').toLowerCase(),
+      }));
+    },
   });
 
   // Filter status options: commercials can only select 'pendiente revisar documentación'
@@ -128,24 +142,7 @@ export default function Step4Vigencia() {
   const isCreating = !contrato.id;
   const resolvedState = React.useMemo(
     () => resolveContractState({ statusOptions, contrato }),
-    [
-      statusOptions,
-      contrato.estado,
-      contrato.estado_label,
-      contrato.estado_nombre,
-      contrato.estado_comercializadora?.label,
-      contrato.estado_comercializadora?.estado,
-      contrato.estado_comercializadora?.nombre,
-      contrato.estado_comercializadora_nombre,
-      contrato.estado_comercializadora_label,
-      contrato.estado_actual,
-      contrato.estado_actual_label,
-      contrato.id_estado_comercializadora,
-      contrato.estado_id,
-      contrato.estado_id_comercializadora,
-      contrato.estado_comercializadora_id,
-      contrato.estado_comercializadora?.id,
-    ]
+    [statusOptions, contrato]
   );
 
   // Commercials can only edit status in creation or if active state is incidence/pendiente
@@ -251,19 +248,20 @@ export default function Step4Vigencia() {
     }
   };
 
+  const contractAny = contrato as any;
   const selectedStateName =
     resolvedState?.label ||
     statusOptions.find((o) => String(o.id) === String(contrato.id_estado_comercializadora))?.label ||
     contrato.estado ||
-    contrato.estado_label ||
-    contrato.estado_nombre ||
-    contrato.estado_comercializadora?.label ||
-    contrato.estado_comercializadora?.estado ||
-    contrato.estado_comercializadora?.nombre ||
-    contrato.estado_comercializadora_nombre ||
-    contrato.estado_comercializadora_label ||
-    contrato.estado_actual ||
-    contrato.estado_actual_label ||
+    contractAny.estado_label ||
+    contractAny.estado_nombre ||
+    contractAny.estado_comercializadora?.label ||
+    contractAny.estado_comercializadora?.estado ||
+    contractAny.estado_comercializadora?.nombre ||
+    contractAny.estado_comercializadora_nombre ||
+    contractAny.estado_comercializadora_label ||
+    contractAny.estado_actual ||
+    contractAny.estado_actual_label ||
     'Seleccionar...';
 
   return (
@@ -383,8 +381,8 @@ export default function Step4Vigencia() {
       </View>
 
       {/* Navigation Buttons */}
-      <View className="mt-4 flex-row space-x-3">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 4)} className="flex-1" />
+      <View className="mt-4 flex-row gap-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 4)} className="flex-1 mr-3" />
         <Button title="Siguiente" variant="primary" onPress={handleNext} className="flex-1" />
       </View>
     </ScrollView>

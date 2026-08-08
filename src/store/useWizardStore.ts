@@ -80,6 +80,15 @@ interface WizardState {
   firmaBase64: string | null;
   isEditing: boolean;
 
+  // Financial arrays for parity
+  pagos_vivivan: any[];
+  pagos_comercial: any[];
+  decomisiones_vivivan: any[];
+  decomisiones_comercial: any[];
+  cobros_servicio: any[];
+  pagos_servicio: any[];
+  decomisiones_servicio: any[];
+
   // Actions
   setStep: (step: number) => void;
   setAvailableSteps: (steps: WizardStep[]) => void;
@@ -165,6 +174,15 @@ export const useWizardStore = create<WizardState>((set) => ({
   firmaBase64: null,
   isEditing: false,
 
+  // Financial arrays for parity
+  pagos_vivivan: [],
+  pagos_comercial: [],
+  decomisiones_vivivan: [],
+  decomisiones_comercial: [],
+  cobros_servicio: [],
+  pagos_servicio: [],
+  decomisiones_servicio: [],
+
   setStep: (step) => set({ currentStep: step }),
   setAvailableSteps: (steps) => set({ availableSteps: steps }),
   setUser: (user) => set({ user }),
@@ -219,6 +237,7 @@ export const useWizardStore = create<WizardState>((set) => ({
       return {
         cliente: {
           ...(data.cliente || {}),
+          id: String(data.cliente?.id || data.id_cliente || contratoPayload?.id_cliente || contratoPayload?.cliente_id || ''),
           iban: data.cliente?.iban || contratoPayload?.iban || '',
         },
         direccion_fiscal: data.direccion_fiscal || {},
@@ -231,6 +250,16 @@ export const useWizardStore = create<WizardState>((set) => ({
           tipo_suministro: contratoPayload?.suministro || contratoPayload?.tipo_suministro || 'Luz',
           id_producto: contratoPayload?.producto_id || contratoPayload?.id_producto || '',
           comercializadora_id: contratoPayload?.comercializadora_id || contratoPayload?.id_comercializadora || '',
+          comercial_id: String(contratoPayload?.comercial_id || contratoPayload?.codigo_comercial || data?.comercial_id || data?.codigo_comercial || ''),
+          codigo_comercial: contratoPayload?.codigo_comercial || data?.codigo_comercial || undefined,
+          firma: contratoPayload?.firma || contratoPayload?.tipo_firma || 'DIGITAL_SMS',
+          tipo_firma: contratoPayload?.tipo_firma || contratoPayload?.firma || 'DIGITAL_SMS',
+          numero_contrato_comercializadora: contratoPayload?.numero_contrato_comercializadora || contratoPayload?.n_contrato || '',
+          tension: contratoPayload?.tension || '',
+          nombre_servicio_1: contratoPayload?.nombre_servicio_1 || '',
+          importe_servicio_1: contratoPayload?.importe_servicio_1 || 0,
+          nombre_servicio_2: contratoPayload?.nombre_servicio_2 || '',
+          importe_servicio_2: contratoPayload?.importe_servicio_2 || 0,
         },
         documentos: (data.documentos_rel || []).map((doc: any) => ({
           uri: doc.url || '',
@@ -240,6 +269,15 @@ export const useWizardStore = create<WizardState>((set) => ({
         firmaBase64: contratoPayload?.firma || null,
         currentStep: 1,
         isEditing: true,
+
+        // Populate financial arrays from completo response
+        pagos_vivivan: data.pagos_vivivan || [],
+        pagos_comercial: data.pagos_comercial || [],
+        decomisiones_vivivan: data.decomisiones_vivivan || [],
+        decomisiones_comercial: data.decomisiones_comercial || [],
+        cobros_servicio: data.cobros_servicio || [],
+        pagos_servicio: data.pagos_servicio || [],
+        decomisiones_servicio: data.decomisiones_servicio || [],
       };
     }),
 
@@ -292,5 +330,14 @@ export const useWizardStore = create<WizardState>((set) => ({
       documentos: [],
       firmaBase64: null,
       isEditing: false,
+
+      // Reset financial arrays
+      pagos_vivivan: [],
+      pagos_comercial: [],
+      decomisiones_vivivan: [],
+      decomisiones_comercial: [],
+      cobros_servicio: [],
+      pagos_servicio: [],
+      decomisiones_servicio: [],
     }),
 }));

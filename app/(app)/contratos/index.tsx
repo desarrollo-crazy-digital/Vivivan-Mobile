@@ -89,10 +89,10 @@ export default function ContratosListScreen() {
   const renderContractItem = ({ item }: { item: any }) => {
     return (
       <TouchableOpacity
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         onPress={() => handleEditContract(item.id)}
       >
-        <Card className="mb-3 hover:bg-slate-50">
+        <Card className="mb-3">
           <View className="flex-row justify-between items-center mb-2">
             <View className="flex-1 mr-2">
               <Text className="text-xs text-slate-400 font-bold uppercase">

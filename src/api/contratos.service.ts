@@ -77,9 +77,73 @@ export const contratosService = {
     return response.data;
   },
 
+  getComerciales: async (): Promise<Array<{ id: string; nombre: string; codigo: number }>> => {
+    try {
+      const response = await client.get<any[]>('/api/comerciales');
+      return (response.data || []).map((c: any) => ({
+        id: String(c.id || c.codigo || ''),
+        nombre: String(c.nombre || c.nombre_completo || c.codigo || ''),
+        codigo: Number(c.codigo || c.id || 0),
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  getServicios: async (): Promise<Array<{ id: string; nombre: string }>> => {
+    try {
+      const response = await client.get<any[]>('/api/servicios');
+      return (response.data || []).map((s: any) => ({
+        id: String(s.id || s.nombre || ''),
+        nombre: String(s.nombre || s.concepto || ''),
+      }));
+    } catch {
+      return [];
+    }
+  },
+
+  getContractDocuments: async (contratoId: string): Promise<Array<{ id: string; nombre: string; url: string; fecha_subida?: string }>> => {
+    try {
+      const response = await client.get<any[]>(`/api/documentos/contratos/${contratoId}/documentos`);
+      return (response.data || []).map((doc: any) => ({
+        id: String(doc.id || doc.url || ''),
+        nombre: String(doc.nombre_archivo || doc.nombre || doc.filename || 'Documento Digital'),
+        url: String(doc.url || doc.path || ''),
+        fecha_subida: doc.created_at || doc.fecha_subida || '',
+      }));
+    } catch (e) {
+      console.warn('Error loading contract documents:', e);
+      return [];
+    }
+  },
+
+  uploadContractDocument: async (contratoId: string, fileUri: string, fileName: string, fileType: string): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: fileType || 'application/pdf',
+    } as any);
+    const response = await client.post(`/api/documentos/contratos/${contratoId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   getEstados: async (): Promise<{ id: number; label: string; categoria?: string; comercializadora_id?: string }[]> => {
     const response = await client.get<{ id: number; label: string; categoria?: string; comercializadora_id?: string }[]>('/api/estados');
     return response.data;
+  },
+
+  getEstadosPorComercializadora: async (comercializadoraId: string): Promise<{ id: number; label: string; categoria?: string }[]> => {
+    const response = await client.get<any[]>(`/api/comercializadoras/${comercializadoraId}/estados`);
+    return response.data.map((e: any) => ({
+      id: e.id,
+      label: e.cr030_nombre || e.estado || e.label || '',
+      categoria: (e.categoria_global || '').toLowerCase(),
+    }));
   },
 
   getProductosPorComercializadora: async (comercializadoraId: string, tarifa?: string): Promise<Producto[]> => {

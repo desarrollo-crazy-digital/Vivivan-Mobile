@@ -19,6 +19,13 @@ export default function Step8Confirmar() {
     resetWizard,
     user,
     navigatePrev,
+    pagos_vivivan,
+    pagos_comercial,
+    decomisiones_vivivan,
+    decomisiones_comercial,
+    cobros_servicio,
+    pagos_servicio,
+    decomisiones_servicio,
   } = useWizardStore();
 
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +67,13 @@ export default function Step8Confirmar() {
           suministro: contrato.tipo_suministro,
         },
         direcciones: [supplyDir, fiscalDir],
+        pagos_vivivan,
+        pagos_comercial,
+        decomisiones_vivivan,
+        decomisiones_comercial,
+        cobros_servicio,
+        pagos_servicio,
+        decomisiones_servicio,
       };
 
       // 2. Submit contract creation or update
@@ -197,8 +211,8 @@ export default function Step8Confirmar() {
       </Card>
 
       {/* Navigation Buttons */}
-      <View className="mt-4 flex-row space-x-3">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 8)} className="flex-1" />
+      <View className="mt-4 flex-row gap-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 8)} className="flex-1 mr-3" />
         {canEditFields ? (
           <Button
             title="Tramitar Contrato"

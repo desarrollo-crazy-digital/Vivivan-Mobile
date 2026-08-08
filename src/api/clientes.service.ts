@@ -45,4 +45,30 @@ export const clientesService = {
     }>('/api/clientes/upsert-solo', mappedPayload);
     return response.data;
   },
+
+  getClientDocuments: async (clienteId: string): Promise<Array<{ id: string; nombre: string; tipo: string; fecha_subida: string; url: string }>> => {
+    try {
+      const response = await client.get(`/api/client-docs/${clienteId}/list`);
+      return response.data || [];
+    } catch (e) {
+      console.warn('Error loading client documents:', e);
+      return [];
+    }
+  },
+
+  uploadClientDocument: async (clienteId: string, fileUri: string, fileName: string, fileType: string): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: fileUri,
+      name: fileName,
+      type: fileType || 'application/pdf',
+    } as any);
+    formData.append('tipo', 'Otros');
+    const response = await client.post(`/api/client-docs/${clienteId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };

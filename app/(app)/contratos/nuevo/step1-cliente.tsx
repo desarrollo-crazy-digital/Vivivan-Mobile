@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Switch, Alert, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useWizardStore } from '../../../../src/store/useWizardStore';
@@ -7,6 +7,7 @@ import { authService } from '../../../../src/api/auth.service';
 import { Card } from '../../../../src/components/ui/Card';
 import { Input } from '../../../../src/components/ui/Input';
 import { Button } from '../../../../src/components/ui/Button';
+import { Badge } from '../../../../src/components/ui/Badge';
 
 // Spanish IBAN validator helper
 function validateSpanishIBAN(iban: string): boolean {
@@ -20,7 +21,46 @@ export default function Step1Cliente() {
   const router = useRouter();
   const { cliente, updateCliente, resetWizard, setUser, setAvailableSteps, setStep, navigateNext, currentStep, availableSteps, contrato, user } = useWizardStore();
   const [loading, setLoading] = useState(false);
-  
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [clientDocs, setClientDocs] = useState<Array<{ id: string; nombre: string; tipo: string; fecha_subida: string; url: string }>>([]);
+
+  const targetClientId = cliente.id || (contrato as any).id_cliente || (contrato as any).cliente_id;
+
+  const loadClientDocs = useCallback(async () => {
+    if (targetClientId) {
+      const docs = await clientesService.getClientDocuments(String(targetClientId));
+      setClientDocs(docs);
+    }
+  }, [targetClientId]);
+
+  useEffect(() => {
+    loadClientDocs();
+  }, [loadClientDocs]);
+
+  const handleUploadClientDoc = async () => {
+    if (!targetClientId) {
+      Alert.alert('Cliente no guardado', 'Por favor, guarde o busque un cliente existente antes de adjuntar documentos.');
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const fileName = `DNI_Cliente_${Date.now()}.pdf`;
+      await clientesService.uploadClientDocument(
+        String(targetClientId),
+        'file://documento_cliente.pdf',
+        fileName,
+        'application/pdf'
+      );
+      Alert.alert('Documento Subido', 'El documento se ha adjuntado correctamente al perfil del cliente en la base de datos.');
+      await loadClientDocs();
+    } catch (e: any) {
+      console.warn('Error uploading client doc:', e);
+      Alert.alert('Error al subir', 'No se pudo vincular el documento al cliente.');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -28,6 +68,22 @@ export default function Step1Cliente() {
 
   // Form errors
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const cifPrefixes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'N', 'P', 'Q', 'R', 'S', 'U', 'V', 'W'];
+  useEffect(() => {
+    const val = (cliente.nif_cif || '').toUpperCase().trim();
+    if (!val) return;
+    const firstChar = val.charAt(0);
+    const isCif = cifPrefixes.includes(firstChar);
+    const newTipo = isCif ? 'Pyme' : 'Residencial';
+    if (!cliente.tipo_cliente || (isCif && cliente.tipo_cliente === 'Residencial') || (!isCif && cliente.tipo_cliente === 'Pyme')) {
+      updateCliente({
+        tipo_cliente: newTipo,
+        es_empresa: isCif,
+        cnae: isCif ? (cliente.cnae === '9820' ? '' : cliente.cnae) : '9820',
+      });
+    }
+  }, [cliente.nif_cif]);
 
   useEffect(() => {
     async function initWizard() {
@@ -123,7 +179,6 @@ export default function Step1Cliente() {
     if (!cliente.nif_cif_firmante) newErrors.nif_cif_firmante = 'El NIF del firmante es obligatorio';
     if (!cliente.movil_firmante) newErrors.movil_firmante = 'El móvil del firmante es obligatorio';
     if (!cliente.email_firmante) newErrors.email_firmante = 'El email del firmante es obligatorio';
-    if (!cliente.fecha_nacimiento_firmante) newErrors.fecha_nacimiento_firmante = 'La fecha de nacimiento es obligatoria';
 
     // IBAN check
     if (cliente.iban) {
@@ -276,6 +331,40 @@ export default function Step1Cliente() {
           error={errors.movil}
         />
 
+        <View className="mb-4">
+          <Text className="text-xs font-bold text-slate-700 uppercase mb-2">TIPO DE CLIENTE</Text>
+          <View className="flex-row space-x-2">
+            {['Residencial', 'Pyme', 'Gran Cuenta'].map((tipo) => {
+              const active = (cliente.tipo_cliente || (cliente.es_empresa ? 'Pyme' : 'Residencial')) === tipo;
+              return (
+                <TouchableOpacity
+                  key={tipo}
+                  onPress={() => {
+                    const isEmp = tipo !== 'Residencial';
+                    updateCliente({
+                      tipo_cliente: tipo,
+                      es_empresa: isEmp,
+                      cnae: tipo === 'Residencial' ? '9820' : (cliente.cnae === '9820' ? '' : cliente.cnae),
+                    });
+                  }}
+                  className={`flex-1 py-2.5 px-3 rounded-xl border items-center justify-center ${
+                    active ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-200'
+                  }`}
+                >
+                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-slate-700'}`}>{tipo}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <Input
+          label="CNAE (CÓDIGO ACTIVIDAD)"
+          placeholder="Ej: 9820"
+          value={cliente.cnae || (cliente.es_empresa ? '' : '9820')}
+          onChangeText={(val) => updateCliente({ cnae: val })}
+        />
+
         <Input
           label="EMAIL (OPCIONAL)"
           placeholder="cliente@correo.com"
@@ -348,7 +437,7 @@ export default function Step1Cliente() {
         />
 
         <Input
-          label="FECHA DE NACIMIENTO (AAAA-MM-DD)"
+          label="FECHA DE NACIMIENTO (OPCIONAL)"
           placeholder="1980-05-15"
           value={cliente.fecha_nacimiento_firmante}
           onChangeText={(val) => {
@@ -372,6 +461,46 @@ export default function Step1Cliente() {
           }}
           error={errors.iban}
         />
+      </Card>
+
+      {/* Documentación Cliente */}
+      <Card title="Documentación del Cliente" subtitle="Documentos adjuntos guardados en BD (DNI, NIF, Escrituras)">
+        <View className="mb-3">
+          <Button
+            title={uploadingDoc ? "Subiendo..." : "➕ Adjuntar Documento al Cliente"}
+            variant="outline"
+            disabled={uploadingDoc}
+            onPress={handleUploadClientDoc}
+            className="w-full"
+          />
+        </View>
+
+        {clientDocs.length > 0 ? (
+          <View className="space-y-2">
+            {clientDocs.map((doc) => (
+              <View key={doc.id} className="flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-3 mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className="text-xs font-bold text-slate-800" numberOfLines={1}>
+                    📄 {doc.nombre}
+                  </Text>
+                  {doc.fecha_subida ? (
+                    <Text className="text-[10px] text-slate-400">Subido: {doc.fecha_subida}</Text>
+                  ) : null}
+                </View>
+                <Badge status="Guardado" />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View className="p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center justify-center">
+            <Text className="text-xs font-bold text-slate-700 mb-1">
+              Sin documentos previos almacenados
+            </Text>
+            <Text className="text-[11px] text-slate-400 text-center">
+              Los nuevos documentos cargados (DNI/CIF/Firmas) quedarán vinculados al cliente.
+            </Text>
+          </View>
+        )}
       </Card>
 
       </View>

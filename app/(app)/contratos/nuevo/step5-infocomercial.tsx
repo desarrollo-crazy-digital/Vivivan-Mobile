@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, TouchableOpacity, Modal, Image } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, Alert, TouchableOpacity, Modal, Image, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useWizardStore } from '../../../../src/store/useWizardStore';
+import { contratosService } from '../../../../src/api/contratos.service';
 import { Card } from '../../../../src/components/ui/Card';
 import { Input } from '../../../../src/components/ui/Input';
 import { Button } from '../../../../src/components/ui/Button';
+import { Badge } from '../../../../src/components/ui/Badge';
 import { CameraOCR } from '../../../../src/components/wizard/CameraOCR';
 import { SignatureCanvas } from '../../../../src/components/wizard/SignatureCanvas';
 
@@ -29,6 +31,43 @@ export default function Step5InfoComercial() {
 
   const [cameraVisible, setCameraVisible] = useState(false);
   const [signatureVisible, setSignatureVisible] = useState(false);
+  const [contractDocs, setContractDocs] = useState<Array<{ id: string; nombre: string; url: string; fecha_subida?: string }>>([]);
+  const [uploadingContractDoc, setUploadingContractDoc] = useState(false);
+
+  const loadContractDocs = useCallback(async () => {
+    if (contrato.id) {
+      const docs = await contratosService.getContractDocuments(contrato.id);
+      setContractDocs(docs);
+    }
+  }, [contrato.id]);
+
+  useEffect(() => {
+    loadContractDocs();
+  }, [loadContractDocs]);
+
+  const handleUploadContractDoc = async () => {
+    if (!contrato.id) {
+      Alert.alert('Contrato no guardado', 'Tramite o auto-guarde el contrato para vincular documentos digitales.');
+      return;
+    }
+    setUploadingContractDoc(true);
+    try {
+      const fileName = `Documento_Digital_${Date.now()}.pdf`;
+      await contratosService.uploadContractDocument(
+        contrato.id,
+        'file://documento_digital.pdf',
+        fileName,
+        'application/pdf'
+      );
+      Alert.alert('Documento Adjuntado', 'Documento digital subido correctamente al contrato en la base de datos.');
+      await loadContractDocs();
+    } catch (e: any) {
+      console.warn('Error uploading contract doc:', e);
+      Alert.alert('Error al subir', 'No se pudo vincular el documento digital al contrato.');
+    } finally {
+      setUploadingContractDoc(false);
+    }
+  };
 
   // Role permissions
   const isComercial = user?.role === 'comercial';
@@ -115,9 +154,25 @@ export default function Step5InfoComercial() {
       )}
 
       <Text className="text-xl font-bold text-slate-800 mb-2">Paso 5: Info Comercial y Firma</Text>
-      <Text className="text-xs text-slate-500 mb-4">Añade observaciones, adjunta documentos, realiza OCR y captura la firma del cliente.</Text>
+      <Text className="text-xs text-slate-500 mb-4">Añade observaciones, adjunta documentos, gestiona multipunto y recoge la firma del cliente.</Text>
 
       <View pointerEvents={canEditFields ? 'auto' : 'none'}>
+        {/* Multipunto Card */}
+        <Card title="Contrato Multipunto">
+          <View className="flex-row justify-between items-center py-1">
+            <View className="flex-1 mr-3">
+              <Text className="text-xs font-bold text-slate-700">¿Es un Contrato Multipunto?</Text>
+              <Text className="text-[11px] text-slate-400">Activa si este acuerdo abarca múltiples puntos de suministro agrupados</Text>
+            </View>
+            <Switch
+              value={!!contrato.multipunto}
+              onValueChange={(val) => updateContrato({ multipunto: val })}
+              trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+              thumbColor={contrato.multipunto ? '#2563EB' : '#F1F5F9'}
+            />
+          </View>
+        </Card>
+
         {/* Observations Card */}
         <Card title="Observaciones">
         <Input
@@ -177,8 +232,48 @@ export default function Step5InfoComercial() {
         )}
       </Card>
 
+      {/* Documentos Digitales del Contrato */}
+      <Card title="Documentos Digitales del Contrato" subtitle="Documentos y adjuntos vinculados en la BD">
+        <View className="mb-3">
+          <Button
+            title={uploadingContractDoc ? "Subiendo..." : "➕ Adjuntar Documento Digital"}
+            variant="outline"
+            disabled={uploadingContractDoc}
+            onPress={handleUploadContractDoc}
+            className="w-full"
+          />
+        </View>
+
+        {contractDocs.length > 0 ? (
+          <View className="space-y-2">
+            {contractDocs.map((doc) => (
+              <View key={doc.id} className="flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-3 mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className="text-xs font-bold text-slate-800" numberOfLines={1}>
+                    📂 {doc.nombre}
+                  </Text>
+                  {doc.fecha_subida ? (
+                    <Text className="text-[10px] text-slate-400">Subido: {doc.fecha_subida}</Text>
+                  ) : null}
+                </View>
+                <Badge status="Guardado" />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View className="p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center justify-center">
+            <Text className="text-xs font-bold text-slate-700 mb-1">
+              Sin documentos digitales del contrato
+            </Text>
+            <Text className="text-[11px] text-slate-400 text-center">
+              Los anexos digitales del contrato (ej. escrituras, facturas o SEPA) se listarán aquí.
+            </Text>
+          </View>
+        )}
+      </Card>
+
       {/* Signature Card */}
-      <Card title="Firma Digital">
+      <Card title="Firma Digital y Holográfica del Cliente">
         {firmaBase64 ? (
           <View className="items-center mb-4">
             <Image
@@ -195,7 +290,7 @@ export default function Step5InfoComercial() {
           </View>
         ) : (
           <View className="py-6 items-center">
-            <Text className="text-xs text-slate-400 text-center mb-3">La firma del cliente es necesaria para validar el trámite.</Text>
+            <Text className="text-xs text-slate-400 text-center mb-3">Captura la firma manuscrita/digital del cliente en pantalla para validar la contratación.</Text>
             <Button
               title="Recoger Firma del Cliente"
               variant="primary"
@@ -208,8 +303,8 @@ export default function Step5InfoComercial() {
       </View>
 
       {/* Navigation Buttons */}
-      <View className="mt-4 flex-row space-x-3">
-        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 5)} className="flex-1" />
+      <View className="mt-4 flex-row gap-3">
+        <Button title="Atrás" variant="outline" onPress={() => navigatePrev(router, 5)} className="flex-1 mr-3" />
         <Button title="Siguiente" variant="primary" onPress={() => navigateNext(router, 5)} className="flex-1" />
       </View>
 
