@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { View, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text, InteractionManager } from 'react-native';
 import { authService } from '../../src/api/auth.service';
 import { useWizardStore } from '../../src/store/useWizardStore';
 
@@ -11,8 +11,10 @@ export default function AppLayout() {
   const resetWizard = useWizardStore((s) => s.resetWizard);
 
   const handleCancel = () => {
-    resetWizard();
     router.replace('/(app)/contratos');
+    InteractionManager.runAfterInteractions(() => {
+      resetWizard();
+    });
   };
 
   const renderCancelHeaderButton = () => (
