@@ -265,17 +265,16 @@ export default function Step1Cliente() {
           </View>
           {searching && <ActivityIndicator size="small" color="#2563EB" />}
           {searchResults.length > 0 && (
-            <View className="max-h-[180px] border border-slate-100 rounded-xl bg-white mt-1">
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item, index) => String(item.id || item.id_cliente || index)}
-                renderItem={({ item }) => {
+            <View className="max-h-[180px] border border-slate-100 rounded-xl bg-white mt-1 overflow-hidden">
+              <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {searchResults.map((item, index) => {
                   const displayName = item.nombre || item.nombre_razon_social || item.razon_social || item.nombre_completo || item.titular || 'Cliente sin nombre';
                   const displayNif = item.nif_cif || item.cif_nif || item.nif || item.dni || '-';
                   const displayMovil = item.movil || item.telefono || item.phone || '-';
 
                   return (
                     <TouchableOpacity
+                      key={String(item.id || item.id_cliente || index)}
                       onPress={() => selectExistingClient(item)}
                       className="p-3 border-b border-slate-100 last:border-0"
                     >
@@ -283,8 +282,8 @@ export default function Step1Cliente() {
                       <Text className="text-[10px] text-slate-400">NIF: {displayNif} | Móvil: {displayMovil}</Text>
                     </TouchableOpacity>
                   );
-                }}
-              />
+                })}
+              </ScrollView>
             </View>
           )}
         </Card>
