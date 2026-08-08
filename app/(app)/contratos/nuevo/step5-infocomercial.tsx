@@ -257,8 +257,24 @@ export default function Step5InfoComercial() {
           />
         </View>
 
-        {contractDocs.length > 0 ? (
+        {contractDocs.length > 0 || documentos.length > 0 ? (
           <View className="space-y-2">
+            {/* Local wizard documents */}
+            {documentos.map((doc, idx) => (
+              <View key={`local-c-${idx}`} className="flex-row justify-between items-center bg-blue-50/50 border border-blue-200 rounded-xl p-3 mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className="text-xs font-bold text-slate-800" numberOfLines={1}>
+                    📂 {doc.name}
+                  </Text>
+                  <Text className="text-[10px] text-blue-600 font-medium">Adjuntado (pendiente de tramitación)</Text>
+                </View>
+                <TouchableOpacity onPress={() => removeDocumento(idx)} className="px-2 py-1 bg-rose-100 rounded-lg">
+                  <Text className="text-[10px] font-bold text-rose-600">🗑️ Quitar</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* DB stored documents */}
             {contractDocs.map((doc) => (
               <View key={doc.id} className="flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-3 mb-2">
                 <View className="flex-1 mr-2">
