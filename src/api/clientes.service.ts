@@ -8,15 +8,78 @@ export interface SearchClientesResponse {
 
 export const clientesService = {
   buscarClientes: async (searchTerm: string, limit: number = 20): Promise<Cliente[]> => {
-    // In leer_clientes endpoint (main.py):
-    // query is filtered by dni_cif param which checks nif_cif, nombre, and movil.
-    const response = await client.get<Cliente[]>('/clientes/', {
-      params: {
-        dni_cif: searchTerm,
-        limit,
-      },
-    });
-    return response.data;
+    const cleanTerm = searchTerm.trim();
+    if (!cleanTerm || cleanTerm.length < 2) return [];
+
+    const endpoints = [
+      '/api/clientes',
+      '/api/clientes/',
+      '/clientes/',
+      '/api/contactos',
+      '/api/clientes/buscar',
+    ];
+
+    const paramList = [
+      { search: cleanTerm, limit },
+      { q: cleanTerm, limit },
+      { dni_cif: cleanTerm, limit },
+      { nombre: cleanTerm, limit },
+      { nif_cif: cleanTerm, limit },
+      { cliente: cleanTerm, limit },
+    ];
+
+    for (const ep of endpoints) {
+      for (const params of paramList) {
+        try {
+          const response = await client.get(ep, { params });
+          const data = response.data;
+          const list = Array.isArray(data)
+            ? data
+            : (data?.clientes || data?.items || data?.data || data?.results || []);
+
+          if (Array.isArray(list) && list.length > 0) {
+            return list;
+          }
+        } catch (e) {
+          // Continuar al siguiente endpoint/parámetro si falla
+        }
+      }
+    }
+
+    // Fallback secundario: Buscar contratos con ese nombre/NIF para extraer la ficha del cliente
+    try {
+      const response = await client.get('/api/contratos', {
+        params: { cliente: cleanTerm, dni: cleanTerm, limit },
+      });
+      const data = response.data;
+      const contratos = Array.isArray(data) ? data : (data?.contratos || []);
+      const extractedClientes: Cliente[] = [];
+      const seenIds = new Set<string>();
+
+      for (const c of contratos) {
+        const cId = c.id_cliente || c.cliente_id || c.cliente?.id;
+        const cNombre = c.cliente_nombre || c.cliente?.nombre || c.titular;
+        const cNif = c.dni_cif || c.nif_cif || c.cliente?.nif_cif;
+
+        if (cNombre && !seenIds.has(cId || cNombre)) {
+          seenIds.add(cId || cNombre);
+          extractedClientes.push({
+            id: cId,
+            nombre: cNombre,
+            nif_cif: cNif,
+            movil: c.movil || c.telefono || c.cliente?.movil || '',
+            email: c.email || c.cliente?.email || '',
+            iban: c.iban || c.id_iban || '',
+            es_empresa: false,
+          } as Cliente);
+        }
+      }
+      return extractedClientes;
+    } catch (e) {
+      // Ignore
+    }
+
+    return [];
   },
 
   buscarClientePorNifLocal: async (nif: string): Promise<{ encontrado: boolean; cliente_id?: string; [key: string]: any }> => {

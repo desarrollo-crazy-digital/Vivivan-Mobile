@@ -128,7 +128,7 @@ export default function Step1Cliente() {
 
   const handleSearch = async (text: string) => {
     setSearchTerm(text);
-    if (text.length < 3) {
+    if (text.trim().length < 2) {
       setSearchResults([]);
       return;
     }
@@ -144,27 +144,30 @@ export default function Step1Cliente() {
   };
 
   const selectExistingClient = (selected: any) => {
+    const nombreVal = selected.nombre || selected.nombre_razon_social || selected.razon_social || selected.nombre_completo || selected.titular || '';
+    const nifVal = selected.nif_cif || selected.cif_nif || selected.nif || selected.dni || '';
+    const movilVal = selected.movil || selected.telefono || selected.phone || '';
     updateCliente({
-      id: selected.id,
-      nombre: selected.nombre,
-      nif_cif: selected.nif_cif,
+      id: selected.id || selected.id_cliente,
+      nombre: nombreVal,
+      nif_cif: nifVal,
       email: selected.email || '',
-      movil: selected.movil || '',
-      telefono: selected.telefono || '',
+      movil: movilVal,
+      telefono: selected.telefono || movilVal,
       metodo_pago: selected.metodo_pago || 'DOMICILIACION',
-      iban: selected.iban || '',
+      iban: selected.iban || selected.id_iban || '',
       es_empresa: !!selected.es_empresa,
-      nombre_firmante: selected.nombre_firmante || selected.nombre,
+      nombre_firmante: selected.nombre_firmante || nombreVal,
       apellidos_firmante: selected.apellidos_firmante || '',
-      nif_cif_firmante: selected.nif_cif_firmante || selected.nif_cif,
-      movil_firmante: selected.movil_firmante || selected.movil || '',
+      nif_cif_firmante: selected.nif_cif_firmante || nifVal,
+      movil_firmante: selected.movil_firmante || movilVal,
       email_firmante: selected.email_firmante || selected.email || '',
       fecha_nacimiento_firmante: selected.fecha_nacimiento_firmante || '',
       cnae: selected.cnae || '',
     });
     setSearchTerm('');
     setSearchResults([]);
-    Alert.alert('Cliente Vinculado', `Se ha seleccionado a ${selected.nombre}`);
+    Alert.alert('Cliente Vinculado', `Se ha seleccionado a ${nombreVal}`);
   };
 
   const validateForm = () => {
@@ -262,19 +265,25 @@ export default function Step1Cliente() {
           </View>
           {searching && <ActivityIndicator size="small" color="#2563EB" />}
           {searchResults.length > 0 && (
-            <View className="max-h-[160px] border border-slate-100 rounded-xl bg-white mt-1">
+            <View className="max-h-[180px] border border-slate-100 rounded-xl bg-white mt-1">
               <FlatList
                 data={searchResults}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => selectExistingClient(item)}
-                    className="p-3 border-b border-slate-100 last:border-0"
-                  >
-                    <Text className="text-xs font-bold text-slate-800">{item.nombre}</Text>
-                    <Text className="text-[10px] text-slate-400">NIF: {item.nif_cif} | Movil: {item.movil}</Text>
-                  </TouchableOpacity>
-                )}
+                keyExtractor={(item, index) => String(item.id || item.id_cliente || index)}
+                renderItem={({ item }) => {
+                  const displayName = item.nombre || item.nombre_razon_social || item.razon_social || item.nombre_completo || item.titular || 'Cliente sin nombre';
+                  const displayNif = item.nif_cif || item.cif_nif || item.nif || item.dni || '-';
+                  const displayMovil = item.movil || item.telefono || item.phone || '-';
+
+                  return (
+                    <TouchableOpacity
+                      onPress={() => selectExistingClient(item)}
+                      className="p-3 border-b border-slate-100 last:border-0"
+                    >
+                      <Text className="text-xs font-bold text-slate-800">{displayName}</Text>
+                      <Text className="text-[10px] text-slate-400">NIF: {displayNif} | Móvil: {displayMovil}</Text>
+                    </TouchableOpacity>
+                  );
+                }}
               />
             </View>
           )}
