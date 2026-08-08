@@ -69,7 +69,7 @@ const findValueByKeyFragments = (source: any, fragments: string[]): any => {
 const getNumberFromKeys = (source: any, keys: string[], fragments: string[] = []) => {
   const value = findValueByKeys(source, keys) ?? findValueByKeyFragments(source, fragments);
   if (value === undefined || value === null || value === '') return undefined;
-  
+
   let cleaned = String(value).replace(/[^0-9,.-]+/g, '');
   if (cleaned.includes(',') && cleaned.includes('.')) {
     cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
@@ -78,7 +78,7 @@ const getNumberFromKeys = (source: any, keys: string[], fragments: string[] = []
   } else if ((cleaned.match(/\./g) || []).length > 1) {
     cleaned = cleaned.replace(/\./g, '');
   }
-  
+
   const parsed = Number(cleaned);
   return Number.isNaN(parsed) ? undefined : parsed;
 };
@@ -103,10 +103,10 @@ const getRawSections = (source: any, keys: string[], fragments: string[] = []) =
 
 const resolveItemLabel = (item: any, index: number): string => {
   if (!item) return `Línea ${index + 1}`;
-  
+
   if (item.concepto) return String(item.concepto);
   if (item.nombre) return String(item.nombre);
-  
+
   if (item._tipo === 'supervisado') {
     return 'Comercial (Neto)';
   }
@@ -119,7 +119,7 @@ const resolveItemLabel = (item: any, index: number): string => {
   if (item._destinatario === 'comercial') {
     return 'Comercial';
   }
-  
+
   return `Línea ${index + 1}`;
 };
 
@@ -401,9 +401,8 @@ export default function Step6Comisiones() {
                         copy[idx].estado = copy[idx].estado === 'cobrado' ? 'no_cobrado' : 'cobrado';
                         setCobrosList(copy);
                       }}
-                      className={`p-3 rounded-xl border items-center justify-center ${
-                        item.estado === 'cobrado' ? 'bg-emerald-50 border-emerald-500' : 'bg-white border-slate-200'
-                      }`}
+                      className={`p-3 rounded-xl border items-center justify-center ${item.estado === 'cobrado' ? 'bg-emerald-50 border-emerald-500' : 'bg-white border-slate-200'
+                        }`}
                     >
                       <Text className={`text-xs font-bold ${item.estado === 'cobrado' ? 'text-emerald-700' : 'text-slate-600'}`}>
                         {item.estado === 'cobrado' ? '✓ Cobrado' : 'No cobrado'}
@@ -457,9 +456,8 @@ export default function Step6Comisiones() {
                         copy[idx].estado = copy[idx].estado === 'pagado' ? 'no_pagado' : 'pagado';
                         setPagosList(copy);
                       }}
-                      className={`p-3 rounded-xl border items-center justify-center ${
-                        item.estado === 'pagado' ? 'bg-blue-50 border-blue-500' : 'bg-white border-slate-200'
-                      }`}
+                      className={`p-3 rounded-xl border items-center justify-center ${item.estado === 'pagado' ? 'bg-blue-50 border-blue-500' : 'bg-white border-slate-200'
+                        }`}
                     >
                       <Text className={`text-xs font-bold ${item.estado === 'pagado' ? 'text-blue-700' : 'text-slate-600'}`}>
                         {item.estado === 'pagado' ? '✓ Pagado' : 'No pagado'}
@@ -511,9 +509,8 @@ export default function Step6Comisiones() {
                         copy[idx].estado = copy[idx].estado === 'decomisionado' ? 'no_decomisionado' : 'decomisionado';
                         setDecomVivivanList(copy);
                       }}
-                      className={`p-3 rounded-xl border items-center justify-center ${
-                        item.estado === 'decomisionado' ? 'bg-amber-50 border-amber-500' : 'bg-white border-slate-200'
-                      }`}
+                      className={`p-3 rounded-xl border items-center justify-center ${item.estado === 'decomisionado' ? 'bg-amber-50 border-amber-500' : 'bg-white border-slate-200'
+                        }`}
                     >
                       <Text className={`text-xs font-bold ${item.estado === 'decomisionado' ? 'text-amber-700' : 'text-slate-600'}`}>
                         {item.estado === 'decomisionado' ? '⚠ Decomisionado' : 'No Decomisionado'}
@@ -564,9 +561,8 @@ export default function Step6Comisiones() {
                         copy[idx].estado = copy[idx].estado === 'decomisionado' ? 'no_decomisionado' : 'decomisionado';
                         setDecomComercialList(copy);
                       }}
-                      className={`p-3 rounded-xl border items-center justify-center ${
-                        item.estado === 'decomisionado' ? 'bg-amber-50 border-amber-500' : 'bg-white border-slate-200'
-                      }`}
+                      className={`p-3 rounded-xl border items-center justify-center ${item.estado === 'decomisionado' ? 'bg-amber-50 border-amber-500' : 'bg-white border-slate-200'
+                        }`}
                     >
                       <Text className={`text-xs font-bold ${item.estado === 'decomisionado' ? 'text-amber-700' : 'text-slate-600'}`}>
                         {item.estado === 'decomisionado' ? '⚠ Decomisionado' : 'No Decomisionado'}
