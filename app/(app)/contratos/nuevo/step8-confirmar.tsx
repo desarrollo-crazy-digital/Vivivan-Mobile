@@ -227,7 +227,7 @@ export default function Step8Confirmar() {
             variant="primary"
             onPress={() => {
               resetWizard();
-              router.replace('/contratos');
+              router.replace('/(app)/contratos');
             }}
             className="flex-1"
           />

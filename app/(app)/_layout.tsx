@@ -12,7 +12,7 @@ export default function AppLayout() {
 
   const handleCancel = () => {
     resetWizard();
-    router.replace('/contratos');
+    router.replace('/(app)/contratos');
   };
 
   const renderCancelHeaderButton = () => (
