@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Switch, Alert, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import { useWizardStore } from '../../../../src/store/useWizardStore';
 import { clientesService } from '../../../../src/api/clientes.service';
 import { authService } from '../../../../src/api/auth.service';
@@ -38,25 +39,31 @@ export default function Step1Cliente() {
   }, [loadClientDocs]);
 
   const handleUploadClientDoc = async () => {
-    if (!targetClientId) {
-      Alert.alert(
-        'Cliente no registrado',
-        'Para adjuntar documentos a este cliente, primero busque un cliente existente o avance al siguiente paso para guardar la ficha.'
-      );
-      return;
-    }
-    setUploadingDoc(true);
     try {
-      const fileName = `DNI_Cliente_${Date.now()}.pdf`;
-      const dummyPdfDataUri = 'data:application/pdf;base64,JVBERi0xLjQKJSVFT0YK';
-      await clientesService.uploadClientDocument(
-        String(targetClientId),
-        dummyPdfDataUri,
-        fileName,
-        'application/pdf'
-      );
-      Alert.alert('Documento Subido', 'El documento se ha adjuntado correctamente al perfil del cliente en la base de datos.');
-      await loadClientDocs();
+      const pickerResult = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        return;
+      }
+
+      const file = pickerResult.assets[0];
+      setUploadingDoc(true);
+
+      if (targetClientId) {
+        await clientesService.uploadClientDocument(
+          String(targetClientId),
+          file.uri,
+          file.name,
+          file.mimeType || 'application/pdf'
+        );
+        Alert.alert('Documento Subido', `El archivo ${file.name} se ha adjuntado correctamente al cliente.`);
+        await loadClientDocs();
+      } else {
+        Alert.alert('Documento Adjuntado', `El archivo ${file.name} se vinculará en cuanto avance de paso y se cree el cliente.`);
+      }
     } catch (e: any) {
       console.warn('Error uploading client doc:', e);
       const msg = e?.response?.data?.detail || e?.response?.data?.message || 'No se pudo vincular el documento al cliente.';

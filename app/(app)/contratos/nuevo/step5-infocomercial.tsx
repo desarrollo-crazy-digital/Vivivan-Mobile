@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Alert, TouchableOpacity, Modal, Image, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import { useWizardStore } from '../../../../src/store/useWizardStore';
 import { contratosService } from '../../../../src/api/contratos.service';
 import { Card } from '../../../../src/components/ui/Card';
@@ -46,22 +47,32 @@ export default function Step5InfoComercial() {
   }, [loadContractDocs]);
 
   const handleUploadContractDoc = async () => {
-    if (!contrato.id) {
-      Alert.alert('Contrato no guardado', 'Tramite o auto-guarde el contrato para vincular documentos digitales.');
-      return;
-    }
-    setUploadingContractDoc(true);
     try {
-      const fileName = `Documento_Digital_${Date.now()}.pdf`;
-      const dummyPdfDataUri = 'data:application/pdf;base64,JVBERi0xLjQKJSVFT0YK';
-      await contratosService.uploadContractDocument(
-        contrato.id,
-        dummyPdfDataUri,
-        fileName,
-        'application/pdf'
-      );
-      Alert.alert('Documento Adjuntado', 'Documento digital subido correctamente al contrato en la base de datos.');
-      await loadContractDocs();
+      const pickerResult = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        return;
+      }
+
+      const file = pickerResult.assets[0];
+      setUploadingContractDoc(true);
+
+      if (contrato.id) {
+        await contratosService.uploadContractDocument(
+          contrato.id,
+          file.uri,
+          file.name,
+          file.mimeType || 'application/pdf'
+        );
+        Alert.alert('Documento Adjuntado', `El archivo ${file.name} se ha subido correctamente al contrato en la base de datos.`);
+        await loadContractDocs();
+      } else {
+        addDocumento({ uri: file.uri, name: file.name, type: file.mimeType || 'application/pdf' });
+        Alert.alert('Documento Adjuntado', `El archivo ${file.name} se guardará al tramitar el contrato.`);
+      }
     } catch (e: any) {
       console.warn('Error uploading contract doc:', e);
       const msg = e?.response?.data?.detail || e?.response?.data?.message || 'No se pudo vincular el documento digital al contrato.';
