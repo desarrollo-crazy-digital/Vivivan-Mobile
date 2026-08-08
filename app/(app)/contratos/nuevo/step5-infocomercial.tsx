@@ -53,9 +53,10 @@ export default function Step5InfoComercial() {
     setUploadingContractDoc(true);
     try {
       const fileName = `Documento_Digital_${Date.now()}.pdf`;
+      const dummyPdfDataUri = 'data:application/pdf;base64,JVBERi0xLjQKJSVFT0YK';
       await contratosService.uploadContractDocument(
         contrato.id,
-        'file://documento_digital.pdf',
+        dummyPdfDataUri,
         fileName,
         'application/pdf'
       );
@@ -63,7 +64,8 @@ export default function Step5InfoComercial() {
       await loadContractDocs();
     } catch (e: any) {
       console.warn('Error uploading contract doc:', e);
-      Alert.alert('Error al subir', 'No se pudo vincular el documento digital al contrato.');
+      const msg = e?.response?.data?.detail || e?.response?.data?.message || 'No se pudo vincular el documento digital al contrato.';
+      Alert.alert('Error al subir', msg);
     } finally {
       setUploadingContractDoc(false);
     }

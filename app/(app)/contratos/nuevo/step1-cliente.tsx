@@ -39,15 +39,19 @@ export default function Step1Cliente() {
 
   const handleUploadClientDoc = async () => {
     if (!targetClientId) {
-      Alert.alert('Cliente no guardado', 'Por favor, guarde o busque un cliente existente antes de adjuntar documentos.');
+      Alert.alert(
+        'Cliente no registrado',
+        'Para adjuntar documentos a este cliente, primero busque un cliente existente o avance al siguiente paso para guardar la ficha.'
+      );
       return;
     }
     setUploadingDoc(true);
     try {
       const fileName = `DNI_Cliente_${Date.now()}.pdf`;
+      const dummyPdfDataUri = 'data:application/pdf;base64,JVBERi0xLjQKJSVFT0YK';
       await clientesService.uploadClientDocument(
         String(targetClientId),
-        'file://documento_cliente.pdf',
+        dummyPdfDataUri,
         fileName,
         'application/pdf'
       );
@@ -55,7 +59,8 @@ export default function Step1Cliente() {
       await loadClientDocs();
     } catch (e: any) {
       console.warn('Error uploading client doc:', e);
-      Alert.alert('Error al subir', 'No se pudo vincular el documento al cliente.');
+      const msg = e?.response?.data?.detail || e?.response?.data?.message || 'No se pudo vincular el documento al cliente.';
+      Alert.alert('Error al subir', msg);
     } finally {
       setUploadingDoc(false);
     }
