@@ -20,7 +20,7 @@ function validateSpanishIBAN(iban: string): boolean {
 
 export default function Step1Cliente() {
   const router = useRouter();
-  const { cliente, updateCliente, resetWizard, setUser, setAvailableSteps, setStep, navigateNext, currentStep, availableSteps, contrato, user } = useWizardStore();
+  const { cliente, updateCliente, resetWizard, setUser, setAvailableSteps, setStep, navigateNext, currentStep, availableSteps, contrato, user, documentos, addDocumento, removeDocumento } = useWizardStore();
   const [loading, setLoading] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [clientDocs, setClientDocs] = useState<Array<{ id: string; nombre: string; tipo: string; fecha_subida: string; url: string }>>([]);
@@ -62,7 +62,12 @@ export default function Step1Cliente() {
         Alert.alert('Documento Subido', `El archivo ${file.name} se ha adjuntado correctamente al cliente.`);
         await loadClientDocs();
       } else {
-        Alert.alert('Documento Adjuntado', `El archivo ${file.name} se vinculará en cuanto avance de paso y se cree el cliente.`);
+        addDocumento({
+          uri: file.uri,
+          name: file.name,
+          type: file.mimeType || 'application/pdf',
+        });
+        Alert.alert('Documento Adjuntado', `El archivo ${file.name} se guardará en la base de datos al registrar el contrato.`);
       }
     } catch (e: any) {
       console.warn('Error uploading client doc:', e);
@@ -495,8 +500,24 @@ export default function Step1Cliente() {
           />
         </View>
 
-        {clientDocs.length > 0 ? (
+        {clientDocs.length > 0 || documentos.length > 0 ? (
           <View className="space-y-2">
+            {/* Local wizard documents */}
+            {documentos.map((doc, idx) => (
+              <View key={`local-${idx}`} className="flex-row justify-between items-center bg-blue-50/50 border border-blue-200 rounded-xl p-3 mb-2">
+                <View className="flex-1 mr-2">
+                  <Text className="text-xs font-bold text-slate-800" numberOfLines={1}>
+                    📄 {doc.name}
+                  </Text>
+                  <Text className="text-[10px] text-blue-600 font-medium">Adjuntado (pendiente de tramitación)</Text>
+                </View>
+                <TouchableOpacity onPress={() => removeDocumento(idx)} className="px-2 py-1 bg-rose-100 rounded-lg">
+                  <Text className="text-[10px] font-bold text-rose-600">🗑️ Quitar</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {/* DB stored documents */}
             {clientDocs.map((doc) => (
               <View key={doc.id} className="flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-3 mb-2">
                 <View className="flex-1 mr-2">
@@ -514,10 +535,10 @@ export default function Step1Cliente() {
         ) : (
           <View className="p-4 bg-slate-50 border border-slate-200 rounded-2xl items-center justify-center">
             <Text className="text-xs font-bold text-slate-700 mb-1">
-              Sin documentos previos almacenados
+              Sin documentos adjuntos
             </Text>
             <Text className="text-[11px] text-slate-400 text-center">
-              Los nuevos documentos cargados (DNI/CIF/Firmas) quedarán vinculados al cliente.
+              Pulsa en el botón superior para seleccionar y vincular cualquier archivo (DNI, CIF, Facturas).
             </Text>
           </View>
         )}
